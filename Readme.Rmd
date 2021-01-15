@@ -14,12 +14,8 @@ La versión final del trabajo puede visualizarse en: <https://nosan5.github.io/t
 
 El presentre trabajo **"ESTUDIO SOBRE EL MERCADO DE TRABAJO"** ha sido realizado por Noelia Sánchez para la asignatura de "Big Data"
 
-En él se analizar el **desempleo**, dado que me parece un problema económico importante de tratar.
+En este analizaré el **desempleo**. En especial, me centraré en la **Tasa de desempleo (en España) para diferentes grupos de edad, sexo y Comunidades Autónomas**.
 
-En especial, me centraré en la **Tasa de desempleo (en España) para diferentes grupos de edad, sexo y Comunidades Autónomas**.
-
-Además, compararé la tasa de paro de nuestro país ci¡on la que presentan otros países de la Unión Europea. 
-
-Por último, analizaré brevemente algunas cuestiones que me parecen interesante, como las **% mujeres directivas** que hay en los países de la OCDE y la **brecha salarial** existente.
+Además, compararé la tasa de paro de nuestro país con la que presentan otros países de la Unión Europea. Así como también, comentaré algunas cuestiones que me parecen interesante, tales como las **% mujeres directivas** que hay en los países de la OCDE y la **brecha salarial** existente.
 
 
