@@ -1,0 +1,1735 @@
+---
+title: "Estudio sobre el MERCADO DE TRABAJO"
+subtitle: "Noelia Sánchez March (nosan5@alumni.uv.es)"
+author: "Universitat de València"
+date: "Diciembre de 2020 (actualizado el `r format(Sys.time(), '%d-%m-%Y')`)"
+output:
+  html_document: 
+    css: "./assets/my_css_file.css"
+    self_contained: yes
+    code_download: true
+    code_folding: show
+    theme: flatly
+    highlight: kate
+    toc: yes
+    toc_depth: 3 
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    df_print: kable
+editor_options: 
+  chunk_output_type: console
+  
+---
+
+```{r packages-setup, include = FALSE}
+library(tidyverse)
+# remotes::install_github("rlesur/klippy")
+library(klippy) 
+library(knitr)
+```
+
+```{r chunk-setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, message = FALSE, warning = FALSE, 
+                      #results = "hold",
+                      cache = FALSE, cache.path = "/caches/", comment = "#>",
+                      #fig.width = 7, #fig.height= 7,   
+                      #out.width = 7, out.height = 7,
+                      collapse = TRUE,  fig.show = "hold",
+                      fig.asp = 7/9, out.width = "60%", fig.align = "center")
+#- para mejorar los gráficos, bueno en realidad para que se vean igual en distintos SO
+#- https://www.jumpingrivers.com/blog/r-knitr-markdown-png-pdf-graphics/
+knitr::opts_chunk$set(dev = "png", dev.args = list(type = "cairo-png"))
+```
+
+```{r options-setup, include = FALSE}
+options(scipen = 999) #- para quitar la notación científica
+options("yaml.eval.expr" = TRUE) #- https://github.com/viking/r-yaml/issues/47  (lo puse x el pb con el warning) En realidad creo que mejor sería ponerlo en RProfile
+```
+
+
+```{r klippy, echo = FALSE}
+klippy::klippy(position = c("top", "right")) #- remotes::install_github("rlesur/klippy")
+```
+
+<div style="text-align: justify"><div/>
+
+<hr class="linea-black">
+
+Trabajo elaborado para la asignatura "Programación y manejo de datos en la era del Big Data" de la Universitat de València durante el curso 2020-2021. El repo del trabajo está [aquí](https://github.com/nosan5/trabajo_BigData){target="_blank"}. La página web de la asignatura y los trabajos de mis compañeros pueden verse [aquí](https://perezp44.github.io/intro-ds-20-21-web/07-trabajos.html){target="_blank"}.
+
+<hr class="linea-black">
+
+## 1. INTRODUCCIÓN
+
+En la asignatura de "Programación y manejo de datos en la era del Big Data"[^1] tenemos que hacer un trabajo individual y otro en grupo. 
+
+Este es el trabajo individual, en él me gustaría analizar el **desempleo**, ya que me parece un problema económico importante de tratar, dado que de este se desencadenan diversos efectos negativos, los cuales  habría que tener (más) en cuenta.
+
+Concretamente, en este trabajo analizaré la <FONT COLOR="Red">Tasa de desempleo (en España) para diferentes grupos de edad, sexo y Comunidades Autónomas</FONT>, así como la compararé con la que presentan otros países de la Unión Europea. 
+
+Asimismo, analizaré brevemente algunas cuestiones que me parecen interesante, como el **% de mujeres directivas** que hay en los países de la OCDE y la **brecha salarial** existente.
+
+A lo largo del trabajo resolveré algunas cuestiones, tales como: Qué comunidad Autónoma presenta una tasa mayor de paro? Qué grupo es el que más se ve afectado?  Qué sexo sufre una tasa de paro mayor? En qué país de la Unión Europea hay más desempleo? Qué diferencias hay entre estos países? Y otras cuestiones, a mi parecer interesantes, como son: que % de mujeres acceden a puestos directivos? Como evoluciona la brecha salarial en los diferentes países de la OCDE?
+
+### 1.1  ¿QUÉ ES EL DESEMPLEO?
+
+El **desempleo** o **paro** se da siempre que hay un desajuste en el mercado laboral. Es decir, cuando la oferta de trabajo (por parte de los trabajadores) es mayor a la demanda del trabajo (por parte de las empresas)
+
+Es decir, hay más personas que están dispuestas a ofrecer su trabajo que puestos de trabajo disponibles. 
+
+```{r eval = TRUE, echo = FALSE, out.width="85%"}
+knitr::include_graphics(here::here("Imagenes", "esquema.png"))
+```
+<a href="./imagenes/esquema.png" target="_blank">[Ampliar Imagen]</a>
+
+He obtenido la imagen de: <a href="http://www.econosublime.com/2017/12/conceptos-mercado-trabajo.html"target="_blank">aquí</a>, página donde se explican los conceptos básicos del mercado de trabajo. 
+
+
+### 1.2  ¿CÓMO SE CALCULA LA TASA DE DESEMPLEO?
+
+Teniendo en cuenta aquellas personas que estando en edad de trabajar, es decir, entre 16 y 65 años, y que buscan activamente empleo no lo encuentran. (Estos forman parte de la <FONT COLOR="Green">**Población Activa (PA)**</FONT> 
+
+Por tanto: $$ Δdesempleo = (Nº desempleados / PA)*100$$
+
+Cabe tener en cuenta que hay **diferentes tipos de desempleo**, algunos de ellos son:
+
+a. <FONT COLOR="Blue">**Desempleo estacional**</FONT> Este se debe a los cambios en la demanda de trabajo debido a las diferentes estaciones del año. Es lo que ocurre por ejemplo, con el sector turístico que absorbe nuevos trabajadores en ciertas epocas del año (verano, navidades...)
+
+b. <FONT COLOR="Blue">**Desempleo friccional**</FONT> Este es el voluntario y por tanto, independiente al propio funcionamiento del mercado de trabaja.[^3]
+
+c. <FONT COLOR="Blue">**Desempleo cíclico**</FONT> 
+
+d. <FONT COLOR="Blue">**Desempleo estructural**</FONT> Para combatir este será necesario programas de formación, de adpatación a nuevas tecnologías, etc.
+
+
+Y ahora ya sí, voy a proceder con el análisis. Para ello lo primero que necesitaré serán los DATOS...
+
+
+## 2. DATOS UTILIZADOS {.tabset}
+
+### <FONT COLOR="violetred">**Datos**</FONT>
+
+Trabajaré con los datos que proporciona el **INE** - Instituto Nacional de Estadística, el **Eurostat** y la **OCDE**
+
+El INE nos proporciona datos sobre la <FONT COLOR="Green">**Tasa de paro por distintos grupos de edad, sexo y comunidad autónoma** </FONT> divididos por trimestres. Cogeré los correspondientes al periodo 2015T1 - 2020T3
+
+
+<br>
+No obstante, como advierte el INE, es necesario comentar dos aspectos:
+
+1. "Los datos de Ceuta y Melilla han de tomarse con precaución porque pueden estar afectados por grandes errores de muestreo"
+
+2. "En el 1r trimestre de 2020, como consecuencia de la declaración del Estado de alarma motivado por el COVID-19, el tamaño muestran de las entrevistras en las semanas 11-13 ha sido inferior a la de otros trimestres"
+<br>
+
+Los datos procedentes del Eurostat los obtendré mediante el paquete "Eurostat" e iran también relacionado con las tasas de desempleo en los diferentes países de la Unión Europea. 
+
+### <FONT COLOR="violetred">**Paquetes utilizados**</FONT>
+
+Estos son los paquetes que he necesitado para hacer al presente trabajo. 
+```{r}
+#Lo primero que tendremos que hacer será cargar estos paquetes. 
+#(En caso de no tenerlos instalos habría que instalarlos 
+#mediante install.packages("..."))
+library(rio)
+library(pxR)
+library(tidyverse)
+library(readxl)
+library(eurostat)
+library(ggplot2)
+library(RColorBrewer)
+library(gganimate)
+library(gifski)
+library(Cairo)
+library(scales)
+library(patchwork)
+library(kableExtra)
+library(sf)
+library(dygraphs)
+library(xts)
+library(lubridate)
+library(plotly)
+library(crosstalk)
+library(reactable)
+library(ggThemeAssist)
+library(magick)
+library(cowplot)
+library(forcats)
+library(ggthemes)
+library(DT)
+library(janitor)
+library(treemapify)
+library(robservable)
+library(packcircles)
+library(viridis)
+library(hrbrthemes) 
+library(wordcloud2)
+library(gt)
+```
+
+### <FONT COLOR="violetred">**Tidy**</FONT>
+
+Con el siguiente código importaré los datos:
+```{r echo=TRUE, eval=TRUE}
+datos_INE <- rio::import(here::here("datos", "datos_INE.csv"))
+```
+
+```{r echo=TRUE, eval=FALSE}
+#Podía haber importado también con el paquete: library("pxR") (Este paquete sirve para trabajar con datos PC-Axis)    
+file_name <- "http://ine.es/jaxiT3/files/t/es/px/4247.px?nocab=1"
+dfINE <- read.px(file_name) %>% as.data.frame()
+#Es igual que los datos con los que he trabajado. 
+```
+
+```{r}
+INE <- datos_INE %>% rename(CCAA = "Comunidades y Ciudades Autónomas")
+INE <- INE %>% separate(CCAA, c("n_CCAA", "CCAA"), sep = " ")
+INE <- INE %>% separate(Periodo, c("Año", "Trimestre"), sep = "_")
+INE <- INE %>% 
+ mutate(Trimestre = case_when(Trimestre == "T1" ~ "1", 
+Trimestre == "T2" ~ "2", 
+Trimestre == "T3" ~ "3",
+Trimestre == "T4" ~ "4"))
+INE$Total <- as.numeric(as.character(INE$Total))
+#str(INE)
+
+INE <- INE %>% rename(CCAAs = "CCAA")
+
+INE <- INE %>%
+    mutate(CCAA =
+    case_when(
+    CCAAs == "TotalNacional" ~ "Total Nacional",
+    CCAAs == "Andalucía" ~ "Andalucía",
+    CCAAs == "LaRioja" ~ "La Rioja",
+    CCAAs == "CastillalaMancha" ~ "Castilla la Mancha",
+    CCAAs == "Aragón" ~ "Aragón",
+    CCAAs == "Canarias" ~ "Canarias",
+    CCAAs == "PaísVasco" ~ "País Vasco",
+    CCAAs == "Asturias" ~ "Asturias",
+    CCAAs == "CastillayLeón" ~ "Castilla y León",
+    CCAAs == "Extremadura" ~ "Extremadura",
+    CCAAs == "Islas" ~ "Islas Baleares",
+    CCAAs == "Madrid" ~ "Madrid",
+    CCAAs == "Ceuta" ~ "Ceuta",
+    CCAAs == "Melilla" ~ "Melilla",
+    CCAAs == "Murcia" ~ "Murcia",
+    CCAAs == "Cantabria" ~ "Cantabria",
+    CCAAs == "Navarra" ~ "Navarra",
+    CCAAs == "Cataluña" ~ "Cataluña",
+    CCAAs == "Galicia" ~ "Galícia",
+    CCAAs == "ComunitatValenciana" ~ "Com.Valenciana"))
+
+INE <- INE %>% select(-CCAAs)
+INE <- INE %>%relocate(CCAA, .after = n_CCAA)
+```
+
+```{r}
+INEb <- rio::import(here::here("datos", "datos_INEb.csv"))
+INEb <- INEb %>% rename(CCAA = "Comunidades y Ciudades Autónomas")
+INEb <- INEb %>% separate(CCAA, c("n_CCAA", "CCAA"), sep = " ")
+INEB <- INEb %>% filter(CCAA != "Total_Nacional" & Edad == "De 25 a 54 años" & Periodo %in% c("2020T1", "2020T2", "2020T3"))
+INEB <- INEB %>% filter(Sexo == "Ambos sexos")
+INEB$Total <- as.numeric(as.character(INEB$Total))
+```
+
+```{r echo=FALSE, eval=TRUE}
+INEB <- INEB %>% rename(CCAAs = "CCAA")
+INEB <- INEB %>%
+    mutate(CCAA =
+    case_when(
+    CCAAs == "Total_Nacional" ~ "Total Nacional",
+    CCAAs == "Andalucía" ~ "Andalucía",
+    n_CCAA == "17" ~ "La Rioja",
+    n_CCAA == "08" ~ "Castilla la Mancha",
+    CCAAs == "Aragón" ~ "Aragón",
+    CCAAs == "Canarias" ~ "Canarias",
+    n_CCAA == "16" ~ "País Vasco",
+    CCAAs == "Asturias" ~ "Asturias",
+    n_CCAA == "07" ~ "Castilla y León",
+    CCAAs == "Extremadura" ~ "Extremadura",
+    n_CCAA == "04" ~ "Islas Baleares",
+    CCAAs == "Madrid" ~ "Madrid",
+    CCAAs == "Ceuta" ~ "Ceuta",
+    CCAAs == "Melilla" ~ "Melilla",
+    CCAAs == "Murcia" ~ "Murcia",
+    CCAAs == "Cantabria" ~ "Cantabria",
+    CCAAs == "Navarra" ~ "Navarra",
+    CCAAs == "Cataluña" ~ "Cataluña",
+    n_CCAA == "12" ~ "Galícia",
+    n_CCAA == "10" ~ "Com.Valenciana"))
+
+INEB <- INEB %>% select(-CCAAs)
+INEB <- INEB %>%relocate(CCAA, .after = n_CCAA)
+```
+
+
+Si quieres saber de donde he sacado los datos o necesitas consultar otros puedes darle al siguiente link: <a href="https://www.ine.es/jaxiT3/Tabla.htm?t=4247"target="_blank">**Datos del INE**</a> 
+
+
+Datos que necesitaré para comparar la tasa de paro con otros países de la Unión Europea. Estos los extraeré de la base de datos: <a href="https://ec.europa.eu/eurostat/tgm/table.do?tab=table&init=1&language=en&pcode=tepsr_wc170&plugin=1"target="_blank">**EUROSTAT**</a>
+
+```{r, echo = FALSE}
+Paro <- get_eurostat("tepsr_wc170")
+Paro_etiquetas <- label_eurostat(Paro)
+```
+
+```{r echo= FALSE, eval=FALSE}
+#De esta tabla, voy a arreglar las siguientes cosas:
+#En geo voy a poner el nombre de los países (Como está en Paro_etiquetas), creo que así es más fácil de identificar.
+#La variable time la voy a separar por año. (El dia y el mes siempre es el mismo, el 1 de enero)
+#Seleccionaré los valores que van des de 2008 hasta los últimos disponibles, 2019.
+#Las variables isced11. sexo y unit, pienso que se pueden eliminar, ya que no nos aportan nada adicional. 
+#En esta tabla todos los datos están en % y no se diferencia por sexo.
+```
+
+
+```{r}
+Paro <- Paro %>% rename(unidad = "unit", sexo = "sex",
+edad = "age", total = "isced11", localidad = "geo", Fecha = "time", valor = "values")
+paro <- bind_cols(Paro,Paro_etiquetas)
+paro <- paro %>% select(edad, geo, Fecha, valor)
+paroa <- paro %>% separate(Fecha, c("Año", "Mes", "Dia"), sep = "-")
+paroa <- paroa %>% select(geo, edad, Año, valor)
+paroa <- paroa %>% filter(Año > "2007")
+#rm(datos_INE, Paro, Paro_etiquetas)
+```
+
+```{r, echo:false}
+rio::export(paro, here::here("datos", "paro_eurostat.csv"))
+```
+
+```{r}
+#Más datos sobre el Eurostat que necesitaré:
+buscartabla <- search_eurostat(pattern = "unemployment",type = "table")
+
+#buscartabla %>% select(title, code)
+
+inf_paro <- get_eurostat("tespm080", time_format = "raw", keepFlags = TRUE)
+
+labelE <- label_eurostat(inf_paro, fix_duplicated = TRUE)
+df_names <- names(inf_paro)
+
+df <- label_eurostat(inf_paro, code = df_names, fix_duplicated = TRUE)
+df <- df %>% select(sex_code, age_code, geo_code, geo, time, values)
+paro_joven <- df
+```
+
+A continuación, obtengo y filtro los datos necesarios sobre la brecha salarial en los diferentes países de la OCDE. Filtraré los datos desde 2010 hasta los últimos disponibles, que son 2018.
+
+Los datos están para el primer decil, es decir, aquellos que corresponden al primer grupo de trabajadores (10% con menores salarios) y a los del noveno decil que pasa al contrario, estos son los que cuentan con mejores salarios.
+
+```{r}
+#Importo los datos sobre la brecha salarial
+brecha_salarial <- rio::import(here::here("datos", "brecha_salarial.xlsx"))
+brecha_salarial <- brecha_salarial %>% select(COU, Country, Indicator, TIME, Value)
+```
+
+Hago lo mismo que antes, pero ahora para los datos sobre la proporción de mujeres directivas, también extraidas de la OCDE.
+
+```{r}
+mujeres_directivas <- rio::import(here::here("datos", "mujeres_directivas.xlsx"))
+mujeres_directivas <- mujeres_directivas %>% select(COU, Country, TIME, Value)
+```
+
+```{r}
+mujeres_directivasSpain <- mujeres_directivas %>% filter(Country == "Spain")
+```
+
+
+
+## 3. EVOLUCIÓN DEL DESEMPLEO 2015-2020  
+
+
+```{r echo=FALSE, eval=TRUE}
+UnemploymentT <- INE %>% 
+                filter(Sexo == "Ambos sexos") %>% 
+                filter(Edad == "Total") %>% 
+                filter(CCAA == "Total Nacional")
+
+UnemploymentT <- UnemploymentT %>% 
+                 select(-c(n_CCAA, Edad))
+
+#str(UnemploymentT$Total) 
+#as.numeric(UnemploymentT$Total,  replace = TRUE)	
+#str(UnemploymentT$Total) 
+
+```
+
+```{r}
+grafico1 <- ggplot(UnemploymentT, aes(Trimestre, Total, fill=Trimestre)) +
+  geom_col()  + 
+  scale_fill_manual(values=brewer.pal(n = 4, name = "PiYG")) +
+  facet_wrap(~Año) +  
+  scale_y_continuous(breaks = seq(0, 24, 3), limits = c(0, 24))  + 
+  theme_test() +  
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(title = "Desempleo en España (%)", caption = "Datos: INE", y=NULL) + 
+  theme(plot.title = element_text(size = 18, hjust = 0.5, color="darkmagenta")) +
+  theme(plot.caption = element_text(size = 10, hjust = 0)) +
+  geom_text(aes(y=Total, label = Total), 
+    position = position_dodge(width = 0.9), size = 3.2, 
+    vjust=2, col = "White")
+
+grafico1 <- grafico1 + theme(strip.background = element_rect(colour = "black", fill = alpha("green",0.2) ))
+
+```
+
+<br>
+```{r echo=FALSE, eval=TRUE, out.width="85%"}
+ggdraw(grafico1) + draw_image(here::here("./Imagenes/PARO.jpg"), 
+x = 1.12, y = 0.26, hjust = 1, vjust = 1, width = 0.39, height = 0.3) 
+```
+
+
+Por lo general, y a la vista de los gráficos, el primer trimestre (enero-febrero-marzo) suele ser un mal periodo para el empleo, dado que se terminan mucho de los contratos de las temporadas de rebajas.
+
+Como podemos observar, en 2015 la cifra era de 28,78% todo y que ha ido disminuyendo hasta el presente año, donde las cifras son bastante elevadas.
+
+No obstante, en el año 2020, la cifra de desempleo de los meses correspondientes al primer trimestre  ha sido más baja que años previos, como por ejemplo, 2018 o 2019. Pasando por tanto de 16,74% a 14,7% y 14,1% en este último año. 
+
+Aun así cabe decir, que como consecuencia de la Covid-19, el paro ha ido ido aumentanto en los sucesivos trimestres. A pesar de ello, a simple vista haber sido inferior que años anteriores. No obstante, cabe comentar qu algunos organismos internacionales esperaban que la tasa de paro aumentara, como consecuencia de la pandemia, más del 20%. 
+
+Un factor importante a tener en cuenta es que a causa de la Covid el tamaño muestral ha sido menor del 9 al 29 de marzo (semana 11-12-13) Por lo que, el Instituto Nacional de Estadística avisa que la cifra de paro podría ser realmente mayor que la que contemplan los datos: "Es probable que muchos trabajadores que hayan perdido su empleo se hayan clasificado como inactivos debido a que no han podido cumplir con las condiciones de búsqueda de trabajo que la EPA determina para que sean considerados parados” (INE, 2020)
+
+Otra de cuestiones a resaltar es que normalmente en los meses de verano la tasa de desempleo tiende a disminuir respecto a los trimestres anteriores. En cambio, como podemos observar en el gráfico del 2020 sucedió al contrario pasando de 14,41 a 15,33 y 16,26 en los tres primeros trimestres del año. (EL cuarto trimestre no se ha considerado, dado que los datos no están todavía disponibles)
+
+### 3.1 Evolución del desempleo por grupos de edad
+
+En el siguiente gráfico, parecido a una "piramide", se muestra la evolución de la tasa de paro diferenciando por el género y los diferentes grupos de edad: 16-19 años; 20-24 años; 25-54 años y de 55 hasta la edad de jubilación.  
+
+```{r}
+INEP <- INE %>%
+  filter(n_CCAA == "00" & Sexo %in% c("Hombres", "Mujeres") & Edad!= "Total" & Trimestre == "3")
+INEP <- INEP %>%
+  filter(Edad %in% c("De 16 a 19 años", "De 20 a 24 años", "De 25 a 54 años", "De 55 y más años"))
+#str(INEP)
+
+piramide <- INEP %>% 
+  mutate(TotalT = ifelse(Sexo == "Hombres", -Total, Total)) %>% 
+  ggplot(aes(x=TotalT, y = Edad, fill = Sexo)) + 
+  geom_col(position = "stack", alpha = 0.6, color = "black") + 
+  scale_fill_manual(values = c("seagreen3", "purple")) + 
+  facet_wrap(~paste("Año", Año))+ 
+  theme_classic() +
+  theme(legend.position = "bottom", 
+    plot.caption = element_text(hjust = 0), 
+    strip.text = element_text(size = 12, face = "bold")) + 
+  scale_x_continuous(labels = abs) + 
+  labs (x = "Tasa de desempleo (%)", y = "Grupos de edad",
+    title = "Tasa de desempleo Total, según grupos de edad y género (%)",
+    subtitle = "Para el 3r trimetre: julio-agosto-septiembre", 
+    caption = "Elaboración propia. Datos: INE") + 
+  geom_text(aes(label=Total), position = position_dodge(width = 0), 
+    color = "black", 
+    size = 2.19,
+    hjust = 0.5,
+    vjust=-1)
+```
+
+```{r echo=FALSE, eval=TRUE, out.width="85%"}
+piramide
+```
+
+Como podemos observar mediante el gráfico, el grupo de edad más perjudicado por la tasa de desempleo, son aquellos que tienen entre 16 y 19 años, seguidos de los de 20 a 24 años.
+
+Esto se debe entre otros motivos, por la falta de experiencia, que muchas empresas reclaman a la hora de contratar. Ya que, aunque muchos si dispongan de ciertos conomientos y tengan formación suficiente por haber realizado grados universitarios o cursos de formación, hay una falta de práctica y de experiencia que las empresas exigen a la hora de contratar a nuevo personal.
+
+No obstante, como podemos ver, la tasa de desempleo en estas edades ha ido disminuyendo en los años posteriores a 2015, todo y que con la crisis actual ha vuelto a aumentar. 
+
+Asimismo, de acuerdo con los gráficos, podemos extraer  que para grupos de edad a partir de 25 años, y sobretodo a partir de 55 la tasa de paro es considerablemente menor. Tiene lógica, dado que la ocupación se concentra primordialmente en aquellos cuya edad es entre 25 y 54 años.
+
+Por otro lado, decir que, como podemos observar, para cualquier franja de edad las mujeres sufren una tasa de desempleo mayor que los hombres.
+A excepción del año 2016 (y 2018) donde la tasa de desempleo de las mujeres de 20-24 años era de 39,18% frente a la de los hombres que era de las mujeres 39,18%; y en el año 2017, donde la tasa de paro femenina para el  el grupo de edad de 16-19 era 3,53% menor, una diferencia mínima. 
+
+> Por lo que podemos concluir que **los grupos sociales más castigados por el desempleo son las mujeres y los jóvenes**, quienes acaban sintiéndose, muchas veces, como marginados o "desanimados" a la hora de buscar trabajo
+
+Respecto a que las mujeres sufren una tasa de paro mayor que los hombres, queda demostrado también con el gráfico evolutivo del apartado [6. DISTRIBUCIÓN DESEMPLEO EN LA COM.VALENCIANA]
+
+### 3.2 ¿Qué tasa de paro hubo en....?
+
+```{r echo=FALSE, eval=TRUE}
+INEH <- INE %>% select(Sexo, CCAA, Edad, Año, Trimestre, Total)
+INEH <- INEH %>% filter(Edad %in% c("De 16 a 19 años", "De 20 a 24 años", "De 25 a 54 años", "De 55 y más años"))
+INEH <- INEH %>% filter(Sexo != "Ambos sexos") %>%
+                filter(CCAA != "Total Nacional")
+INEH$Año <- as.numeric(as.character(INEH$Año))
+INEH$Trimestre <- as.numeric(as.character(INEH$Trimestre))
+
+aa <- INEH %>%
+    mutate(edad =
+    case_when(
+    Edad == "De 16 a 19 años" ~ "16-19",
+    Edad == "De 20 a 24 años" ~ "20-24",
+    Edad == "De 25 a 54 años" ~ "25-54",
+    Edad == "De 55 y más años" ~ ">55"))
+
+INEH <- aa
+INEH <- INEH %>% select(-Edad) %>% rename(Edad = "edad") %>% arrange(Sexo, CCAA, Año, Trimestre)
+INEH <- INEH %>% select(CCAA, Sexo, Año, Trimestre, Edad, Total)
+
+```
+
+```{r}
+#Para hacer la tabla me he inspirado en el trabajo Nombres y apellidos en España"
+#de nuestros compañeros Laura Albert, Laura Borrás y Daniel Casinos. 
+
+data <- SharedData$new(INEH) #Paso los datos a un widget que es compatible con el paquete crosstalk
+
+bscols(widths = c(3,NA,NA),
+  list( filter_checkbox("Sexo", "Sexo", data, ~Sexo, columns =1), 
+    filter_checkbox("Año", "Año", data, ~Año, columns =1),
+      filter_slider("Trimestre", "Trimestre",
+        data, ~Trimestre, width = "100%"),
+  filter_select("CCAA", "CCAA", data, ~CCAA)), 
+   reactable(data, minRows = 10, defaultPageSize =  10, 
+     paginationType = "jump",  showPageSizeOptions =  TRUE , 
+     pageSizeOptions =  c ( 10 , 50 , 100 ),defaultColDef = colDef(
+    align = "center",
+    minWidth = 70,
+    headerStyle = list(background = "lightgreen"),
+       filterable = FALSE), highlight = TRUE,
+     outlined = TRUE, columns = list(Edad = colDef(style = function(value) {
+    if (value > 1) {
+      color <- "#e00000"}
+      else {
+      color <- "#008000"
+    }
+    list(color = color, fontWeight = "bold")
+  }), Total = colDef(name = "Valor", format = colFormat(suffix = "%")))))
+      
+```
+
+La anterior tabla permite consultar la tasa en las diferentes Comunidades Autónomas de España y para diferentes grupos de edad: 16-19 años, 20-24 años, 24-54 y más de 55, que incluyte hasta la edad de jubilación. Ádemás, se puede diferenciar por sexo femenino o masculino. 
+
+
+## 4. TASA DE DESEMPLEO AÑO 2020. {.tabset}
+
+Como podemos observar en esta tabla, la Comunidad Autónoma con menos porcentaje de desempleados en el año 2020 ha sido Navarra, que presentó un 4,51 de paro en el segundo trimestre para el grupo de edad de 55 a 65 años.
+
+```{r echo=FALSE, eval=TRUE}
+INEMin <- INE %>% filter(Sexo %in% c("Mujeres", "Hombres")) %>% filter(Año == "2020")
+INEMin <- INEMin %>% slice_min(Total, n=1) %>% 
+  select(CCAA, Sexo, Edad, Año, Trimestre, Total)
+knitr::kable(INEMin, align = "c", caption = "Menos desempleados año 2020") %>% kableExtra::kable_styling(fixed_thead = list(enabled = T, background = "plum")) %>% kable_paper(full_width = F) %>% column_spec(6, color = "black", background = ifelse(INEMin$Total > 0 , "lightgreen"))
+```
+
+### <FONT COLOR="violetred">**Evolución desempleo CCAA**</FONT>
+
+A través del siguiente gráfico de barras podemos observar la evolución de la tasa de paro en los 3 primeros trimestres del año 2020 en las diferentes Comunidades Autónomas y concluir como ha afectado la actual pandemía en el mercado de trabajo español.
+
+```{r}
+INEBb <- INEB %>% mutate(Periodoo = case_when(Periodo == "2020T3" ~ "3",
+  Periodo == "2020T2" ~ "2",
+  Periodo == "2020T1" ~ "1"))
+
+INEBb <- INEBb %>% select(-Periodo) %>% 
+        select(CCAA, Total, Periodoo)
+INEBb <- INEBb %>%
+          rename("Periodo" = "Periodoo")
+#str(INEBb)
+#str(INEB)
+```
+
+```{r}
+grafico2 <- ggplot(INEBb, aes(Periodo, Total, fill = Periodo)) + 
+  geom_col()+
+  facet_wrap(~CCAA) +
+  theme_test() + 
+  theme(legend.position = "none") + 
+  labs(y=NULL, x=NULL) +  
+  theme(axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) + 
+  labs(title = "DESEMPLEO EN LAS CCAA (3 trimestres 2020)", 
+    subtitle = "De 25 a 54 años") + 
+  scale_y_continuous(breaks = seq(0, 26, 2), limits = c(0, 26)) +
+  theme(plot.title = element_text(size = 14, hjust = 0.5, color="turquoise4")) +
+  theme(plot.subtitle = element_text(size = 19, hjust = 0.5, color="black")) +
+  scale_fill_manual(values=c("seagreen","seagreen3","palegreen")) 
+
+
+```
+
+<br>
+```{r echo=FALSE, eval=TRUE, out.width="85%", fig.align = "center"}
+ggplotly(grafico2, tooltip = "Total")
+```
+
+Al pasar el ratón por cada columna, que corresponde a los tres primeros trimestres del año 2020, nos muestra el % de desempleo que ha tenido x Comunidad Autónoma. 
+
+Cabe resaltar que las CCAA con más % de desempleados son: Andalucía, Canarias, Ceuta, Extremadura y Malilla.
+En estas se muestra como la tasa de paro en el tercer trimestre ha sido superior a la de los triemstres previos, excepto en Exremadura que presentó una tasa de paro superior en el primer trimestre, 23,66% (1T) frente a 19,16% (3T)
+
+Asímismo, Ceuta para el segundo trimestre muestra una dismunicón del 6,69%, no obstante, hay que tener en cuenta que los datos obtenidos de Ceuta y Melilla han de tomarse con precaución, ya que pueden estar afectados por errores de muestreo,  como he indicado al incio del trabajo. 
+
+Resaltar también, el caso del País Vasco, donde la tasa de paro se mantiene constante durante los 3 trimestres  considerados (8,48%, 8,54% y 8,58%)
+
+Por último, decir que **hay que tener en cuenta que los datos**, como además, podemos observar, **reflejan minimamente el efecto de la pandemía, ya que no están contabilizadas las personas afectadas por ERTE** (Expendientes de Regulación Temporal de Empleo)
+
+Respecto a los ERTE, comentar que, de acuerdo con los datos ofrecidos por el Diario, Andalucía cuenta con el mayor número de ERTE (88.650) Todo y que Cataluña ha sumado el mayor número de afectados (603.105) Esto se debe a que aquí se han visto afectados sobre todo aquellos que formaban parte del sector turístico y de la automoción (Seat y Nissan tuvieron que parar por la falta de suministros durante la Covid) Así mismo, en comunidades como Madrid y Andalucía la mayoría de afectados por ERTE corresponden a empresas pequeñas que se dedican a la hosteleria, comercio o actividades culturales principalmente.
+
+### <FONT COLOR="violetred">**Treemapify para el 3r Trimestre**</FONT>
+
+```{r out.width="75%"} 
+INEB3 <- INEB %>% filter(Periodo == "2020T3")
+INEB3$CCAA <- recode(INEB3$CCAA, 
+ "Comunitat_Valenciana"="Comunitat Valenciana", 
+  "La_Rioja" = "La Rioja", 
+  "Castilla_y_León" = "Castilla y León", 
+  "Castilla_la_Mancha" = "Castilla la Macha", 
+  "País_Vasco" = "País Vasco")
+
+ggplot(INEB3, aes(area = Total, fill = Total, label = CCAA)) +
+  geom_treemap() +
+  geom_treemap_text(fontface = "italic", 
+    colour = "white", place = "centre",
+                    grow = FALSE) +
+scale_fill_viridis_c(option = "viridis", name = "", 
+  alpha = 1, begin = 0.1, end = 0.9,direction = -1,
+  guide = guide_colorbar( title = "TASA DE DESEMPLEO",
+    direction = "horizontal", barheight = unit(3, units = "mm"), 
+    barwidth = unit(55, units = "mm"), draw.ulim = F, 
+    title.position = 'top', title.hjust = 0.5, label.hjust = 0.5)) +
+  theme(legend.position = "bottom")  +
+  labs(title = "TASA DE DESEMPLEO EN LAS DIFERENTES CCAA PARA 2020T3",
+       caption = "Datos extraidos del INE") + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.subtitle = element_text(hjust = 0.5))  
+
+```
+
+En este gráfico se muestra la tasa de desempleo para el tercer trimestre de 2020, julio-agosto-septiembre. La leyenda nos indica que el color más clarito, corresponde a aquellas Comunidades Autónomas que han tenido una tasa de paro menor. Como se ha podido comprobar también mediante el gráfico de la "Evolución desempleo CCAA" estas son Navarra y el País Vasco, con una tasa de 8,87% y 8,58% respectivamente. 
+
+A través del treemap podemos ver confirmar como Andalucía, Canarias, Ceuta y Melilla son las Comunidades Autónomas con más tasa de desempleo, como ya se ha comentado anteriormente.
+
+Así mismo, la Comunidad Valenciana, muestra una cifra de desempleo total, en torno al 15%. 
+
+### <FONT COLOR="violetred">**CCAA con mayor tasa**</FONT>
+
+<br>
+En estas tablas se diferencia por el género y el grupo de edad, además del trimestre. 
+
+```{r}
+INEM <- INE %>% filter(Sexo == "Mujeres") %>%
+  filter(Año == "2020")
+INEM$Trimestre <- as.numeric(as.character(INEM$Trimestre))
+
+INEMmax <- INEM %>% 
+  slice_max(Total, n=1) %>% 
+  select(CCAA, Sexo, Edad, Año, Trimestre, Total) %>%
+  arrange(Sexo, Trimestre)
+
+knitr::kable(INEMmax, align = "c", 
+  caption = "Comunidades Autónomas con más mujeres desempleados (2020)") %>% kableExtra::kable_styling(fixed_thead = list(enabled = T, 
+    background = "plum")) %>% 
+  kable_paper(full_width = F) %>%
+column_spec(6, color = "white", 
+  background = ifelse(INEMmax$Total > 1 , "mediumvioletred")) 
+```
+
+```{r echo=FALSE, eval=TRUE}
+INEMb <- INE %>% filter(Sexo == "Hombres") %>%
+  filter(Año == "2020")
+INEMb$Trimestre <- as.numeric(as.character(INEMb$Trimestre))
+
+INEMmaxb <- INEMb %>% 
+  slice_max(Total, n=1) %>% 
+  select(CCAA, Sexo, Edad, Año, Trimestre, Total) %>%
+  arrange(Sexo, Trimestre)
+
+knitr::kable(INEMmaxb, align = "c", caption = "Comunidades Autónomas con más varones desempleados (2020)") %>% kableExtra::kable_styling(fixed_thead = list(enabled = T, background = "plum")) %>% kable_paper(full_width = F) %>%
+column_spec(6, color = "white", background = ifelse(INEMmaxb$Total > 1 , "mediumvioletred")) 
+```
+
+Como podemos observar, hay Comunidades Autónomas que han presentado para el año 2020 una cifra de desempleo del 100%. Además todas ellas, para el grupo de edad entre 16 y 19 años. 
+
+## 5. MAPAS DESEMPLEO 2020T2 SEGÚN GRUPO DE EDAD {.tabset}
+
+Filtro por los datos correspondientes al segundo trimestre (abril, mayo, junio), dado que así podemos ver los efectos de la pandemia, Covid-19.
+Además de que el tamaño de la muestra de los datos del primer trimestre, como advierte el INE fue menor a la de los otros trimestres. (Por tanto, pienso que es mejor coger el segundo trimestre que el primero.) De igual modo, las ciudades autónomas, Ceuta y Melilla, no las he cogido para representar los datos en el Mapa, puestos que como indica el INe, estos valores pueden estar afectados por errores de muestreo.
+
+### <FONT COLOR="violetred">**De 16 a 24 años**</FONT>
+
+```{r echo= FALSE, eval=TRUE}
+CCAA <- rio::import("https://github.com/perezp44/LAU2boundaries4spain/blob/master/data/CCAA.rda?raw=true")
+INEMAPA <- INE %>% 
+  filter(Sexo == "Ambos sexos") %>% 
+  filter(CCAA != "Total Nacional") %>% 
+  filter(Edad == "Menores de 25 años") %>% 
+  filter(Año == "2020") %>% 
+  filter(Trimestre == "2") %>% 
+  slice(-18) %>% 
+  slice(-18)
+  
+canarias <- CCAA %>% 
+  filter(INECodCCAA == "05")
+peninsula <- CCAA %>%
+  filter(INECodCCAA != "05")
+
+my_shift <- st_bbox(peninsula)[c(1,2)]- (st_bbox(canarias)[c(1,2)]) + c(-2.4, -1.1)
+
+canarias$geometry <- canarias$geometry + my_shift
+
+st_crs(canarias)  <- st_crs(peninsula)
+
+peninsula_y_canarias <- rbind(peninsula, canarias)
+
+peninsula_y_canarias <- peninsula_y_canarias %>% slice(-17)
+
+peninsula_y_canarias = sf::st_cast(peninsula_y_canarias, "MULTIPOLYGON")
+
+p <- ggplot(texto = "CCAA" ) + 
+  geom_sf(data = peninsula_y_canarias)
+
+Union <- full_join(peninsula_y_canarias, INEMAPA, by = c("INECodCCAA" = "n_CCAA"))
+
+#names(Union)
+
+Union1 <- Union %>% select(CCAA, Edad, Trimestre, Total, geometry)
+
+CCAA_point <- st_centroid(Union1)
+
+CCAA_points <- cbind(Union1, st_coordinates(st_centroid(Union1$geometry)))
+```
+
+```{r echo=FALSE, eval=TRUE,  out.width="75%"}
+ggplot() + geom_sf(data = peninsula_y_canarias, fill=NA) +  
+  geom_sf(data = CCAA_points, aes(geometry = geometry, fill = Total)) + 
+  geom_text(data = CCAA_points, aes(X, y=Y,
+    label=percent(Total/100)), color = "Black", 
+    fontface = "bold", 
+    check_overlap = TRUE, size = 2.5) + 
+  labs(subtitle = "Edad: 16-24 años")  + 
+  theme_void() + 
+  theme(plot.subtitle = element_text(hjust = 0.5))+ 
+  scale_fill_viridis_c(direction = -1) 
+```
+
+
+```{r echo=TRUE, eval=FALSE}
+#CÓDIGO USADO PARA LOS MAPAS
+CCAA <- rio::import("https://github.com/perezp44/LAU2boundaries4spain/blob/master/data/CCAA.rda?raw=true")
+INEMAPA <- INE %>% filter(Sexo == "Ambos sexos") %>% 
+  filter(CCAA != "Total Nacional") %>% filter(Edad == "Menores de 25 años") %>% filter(Año == "2020") %>% 
+  filter(Trimestre == "2") %>% 
+  slice(-18) %>% 
+  slice(-18)
+  
+#names(CCAA)
+#names(INEMAPA)
+canarias <- CCAA %>% filter(INECodCCAA == "05")
+peninsula <- CCAA %>% filter(INECodCCAA != "05")
+my_shift <- st_bbox(peninsula)[c(1,2)]- (st_bbox(canarias)[c(1,2)]) + c(-2.4, -1.1)
+canarias$geometry <- canarias$geometry + my_shift
+st_crs(canarias)  <- st_crs(peninsula)
+peninsula_y_canarias <- rbind(peninsula, canarias)
+peninsula_y_canarias <- peninsula_y_canarias %>% slice(-17)
+peninsula_y_canarias = sf::st_cast(peninsula_y_canarias, "MULTIPOLYGON")
+
+p <- ggplot(texto = "CCAA" ) + geom_sf(data = peninsula_y_canarias)
+
+Union <- full_join(peninsula_y_canarias, INEMAPA, by = c("INECodCCAA" = "n_CCAA"))
+#names(Union)
+Union1 <- Union %>% select(CCAA, Edad, Trimestre, Total, geometry)
+CCAA_point <- st_centroid(Union1)
+CCAA_points <- cbind(Union1, st_coordinates(st_centroid(Union1$geometry)))
+
+```
+
+```{r echo=TRUE, eval=FALSE}
+ggplot() + geom_sf(data = peninsula_y_canarias, fill=NA) +  
+  geom_sf(data = CCAA_points, aes(geometry = geometry, fill = Total)) + 
+  geom_text(data = CCAA_points, 
+    aes(X, y=Y, label=percent(Total/100)),
+    color = "Black", fontface = "bold",
+    check_overlap = TRUE, size = 2.5) + 
+  labs(subtitle = "Edad: 16-24 años")  + 
+  theme_void() + 
+  theme(plot.subtitle = element_text(hjust = 0.5))+ 
+  scale_fill_viridis_c(direction = -1)
+```
+
+Para el grupo de edad más joven, este es el de 16-24 años, se puede observar, en la leyenda, como la tasa de paro comprende valores entre el 30% y casi el 60%
+
+Siendo Cantabria la Comunidad Autónoma con más % de desempleados entre 16-24 años, estos suman 57,67%. En cambio, Aragón se muestra como la que menor tasa de deseempleo juvenil presental. 
+
+
+### <FONT COLOR="violetred">**De 25 a 54 años**</FONT>
+
+```{r echo = FALSE, eval=TRUE}
+#Datos mapa de 25 a 54 años. 
+INEMAPA2 <- INE %>% 
+  filter(Sexo == "Ambos sexos") %>% 
+  filter(CCAA != "Total Nacional") %>% 
+  filter(Edad == "De 25 a 54 años") %>% 
+  filter(Año == "2020") %>% 
+  filter(Trimestre == "2") %>%
+  slice(-18) %>% slice(-18)
+Union2 <- full_join(peninsula_y_canarias, INEMAPA2, by = c("INECodCCAA" = "n_CCAA"))
+Union2 <- Union2 %>% select(CCAA, Edad, Trimestre, Total, geometry)
+CCAA_point1 <- st_centroid(Union2)
+CCAA_points1 <- cbind(Union2, st_coordinates(st_centroid(Union2$geometry)))
+```
+
+```{r echo=FALSE, eval=TRUE, out.width="75%"}
+ggplot() + geom_sf(data = peninsula_y_canarias, fill=NA) +
+  geom_sf(data = CCAA_points1, aes(geometry = geometry, fill = Total)) + 
+  geom_text(data = CCAA_points1, aes(X, y=Y, label=percent(Total/100)), color = "Black", fontface = "bold", check_overlap = TRUE, size = 2.5) + 
+  theme_void() + 
+  labs(subtitle = "Edad: De 25 a 54 años") +
+  theme(plot.subtitle = element_text(hjust = 0.5)) + 
+  scale_fill_viridis_c(direction = -1)
+```
+
+Los valores en este caso han cambiado, van de aproximadamente el 9% al 20%. Siendo el País Vasco la Comunidad Autónoma con menor % de desempleados para  el grupo de edad de 25 a 54 años. (Mientras que tenía un 30,92% de paro juvenil) 
+Por contra, la Comunidad Autónoma que presenta un mayor porcentaje de parados para este grupo de edad es Andalucía, seguido de Extremadura y las Islas Canarias. 
+
+También es importante tener en cuenta el número de parados de larga duración que hay entre este grupo de edad y que muchas veces puede llevar a que estos se desanimen a la hora de buscar un empleo. E incluso puede dar lugar a que  realizen otras actividades que sean remuneradas pero no declaradas. Por lo que se escapen del control de las Administraciones y de las estadísticas oficiales (economia sumergida)
+
+### <FONT COLOR="violetred">**De 55 a 64 años**</FONT>
+
+```{r echo=FALSE, eval=TRUE}
+#Datos mapa de 55 y más años 
+INEMAPA3 <- INE %>% 
+  filter(Sexo == "Ambos sexos") %>% 
+  filter(CCAA != "Total Nacional") %>% 
+  filter(Edad == "De 55 y más años") %>% 
+  filter(Año == "2020") %>% 
+  filter(Trimestre == "2") %>% 
+  slice(-18) %>% 
+  slice(-18)
+
+Union3 <- full_join(peninsula_y_canarias, INEMAPA3, by = c("INECodCCAA" = "n_CCAA"))
+Union3 <- Union3 %>% select(CCAA, Edad, Trimestre, Total, geometry)
+CCAA_point3 <- st_centroid(Union2)
+CCAA_points3 <- cbind(Union3, st_coordinates(st_centroid(Union2$geometry)))
+```
+
+```{r out.width="75%", echo=FALSE, eval=TRUE}
+ggplot() + geom_sf(data = peninsula_y_canarias, fill=NA) +  
+  geom_sf(data = CCAA_points3, aes(geometry = geometry, fill = Total)) +  
+  geom_text(data = CCAA_points3, aes(X, y=Y, label=percent(Total/100)), color = "Black", fontface = "bold", check_overlap = TRUE, size = 2.5) + 
+  theme_void() +  labs(subtitle = "Edad: De 55 a 64 años") + 
+  theme(plot.subtitle = element_text(hjust = 0.5))+ 
+  scale_fill_viridis_c(direction = -1)
+```
+
+Como podemos observar, para este grupo de edad la tasa de desempleo es menor en comparación con los otros grupos considerados. Esta coge valores en torno al 5% hasta el 19%, siendo Canarias la CCAA con más porcentaje de desempleados para este rango de edad y Navarra la que menor % presenta, un 5,410%. 
+Cabe tener en cuenta que esta es la franja de edad donde menos empleo se destruye. 
+
+## 6. EVOLUCIÓN DESEMPLEO SEGÚN GÉNERO
+
+Mediante los gráficos siguientes, podemos ver como ha sido la evolución de la tasa de paro global (Sin diferenciar por grupos de edad) en los 3 primeros trimestres del año 2020. Así como que género ha presentado una tasa mayor y en qué comunidad autónoma. 
+
+<br>
+
+#### **¿CÓMO HA EVOLUCIONADO LA TASA DE PARO FEMENINA?**
+
+
+```{r echo=FALSE, eval=TRUE}
+datos_INE <- rio::import(here::here("datos", "datos_INE.csv"))
+
+INE <- datos_INE %>% rename(CCAA = "Comunidades y Ciudades Autónomas")
+INE <- INE %>% separate(CCAA, c("n_CCAA", "CCAA"), sep = " ")
+INE <- INE %>% separate(Periodo, c("Año", "Trimestre"), sep = "_")
+INE <- INE %>%
+ mutate(Trimestre = case_when(Trimestre == "T1" ~ "1",
+Trimestre == "T2" ~ "2",
+Trimestre == "T3" ~ "3",
+Trimestre == "T4" ~ "4"))
+INE$Total <- as.numeric(as.character(INE$Total))
+INEE <- INE %>% rename(CCAAs = "CCAA")
+INEE <- INEE %>%
+    mutate(CCAA =
+    case_when(
+    CCAAs == "Andalucía" ~ "Andalucía",
+    CCAAs == "LaRioja" ~ "La Rioja",
+    CCAAs == "CastillalaMancha" ~ "Castilla-La Mancha",
+    CCAAs == "Aragón" ~ "Aragón",
+    CCAAs == "Canarias" ~ "Canarias",
+    CCAAs == "PaísVasco" ~ "País Vasco",
+    CCAAs == "Asturias" ~ "Principado de Asturias",
+    CCAAs == "CastillayLeón" ~ "Castilla y León",
+    CCAAs == "Extremadura" ~ "Extremadura",
+    CCAAs == "Islas" ~ "Illes Balears",
+    CCAAs == "Madrid" ~ "Comunidad de Madrid",
+    CCAAs == "Ceuta" ~ "Ceuta",
+    CCAAs == "Melilla" ~ "Melilla",
+    CCAAs == "Murcia" ~ "Región de Murcia",
+    CCAAs == "Cantabria" ~ "Cantabria",
+    CCAAs == "Navarra" ~ "Comunidad Foral de Navarra",
+    CCAAs == "Cataluña" ~ "Cataluña",
+    CCAAs == "Galicia" ~ "Galicia",
+    CCAAs == "ComunitatValenciana" ~ "Comunidad Valenciana"))
+
+INEE <- INEE %>% select(-CCAAs)
+INEE <- INEE %>%relocate(CCAA, .after = n_CCAA)
+
+
+INEMAPA4 <- INEE %>%
+  filter(Sexo == "Mujeres") %>%
+  filter(CCAA != "Total Nacional") %>%
+  filter(Edad == "Total") %>%
+  filter(Año == "2020") %>%
+filter(CCAA != "Ceuta") %>% filter(CCAA != "Melilla")
+
+CCAA <- rio::import("https://github.com/perezp44/LAU2boundaries4spain/blob/master/data/CCAA.rda?raw=true")
+
+canarias <- CCAA %>%
+  filter(INECodCCAA == "05")
+peninsula <- CCAA %>%
+  filter(INECodCCAA != "05")
+
+my_shift <- st_bbox(peninsula)[c(1,2)]- (st_bbox(canarias)[c(1,2)]) + c(-2.4, -1.1)
+
+canarias$geometry <- canarias$geometry + my_shift
+
+st_crs(canarias)  <- st_crs(peninsula)
+
+peninsula_y_canarias <- rbind(peninsula, canarias)
+
+peninsula_y_canarias <- peninsula_y_canarias %>% slice(-17)
+
+peninsula_y_canarias = sf::st_cast(peninsula_y_canarias, "MULTIPOLYGON")
+
+df_in <-inner_join(peninsula_y_canarias, INEMAPA4, by= c("NombreCCAA" = "CCAA"))
+INEMAPAA4 <- df_in %>% select(NombreCCAA, geometry, Total, Trimestre)
+
+INEMAPA4b <- INEMAPAA4 %>% filter(Trimestre == "1")
+
+```
+
+```{r echo=FALSE, eval=TRUE}
+INEMAPA4bb <- INEMAPA4 %>% slice_max(Total, n=1)
+Mapa <- "https://2.bp.blogspot.com/-3ocbiESoRJY/UeP7h0Lf-VI/AAAAAAAABJM/bLi3UFnZaPs/s1600/ZONA+SUR.jpg"
+
+df_max <- INEMAPA4bb %>% add_column(Mapa)
+df_max <- df_max %>% select(-c(Sexo, n_CCAA, Edad))
+
+Tabla_dfmax<- df_max %>% gt()
+
+Tabla_dfmax <- Tabla_dfmax %>%
+                   tab_header(title = md("**CCAA CON MÁS PARO FEMENINO (%)**"))
+
+Tabla_dfmax <- Tabla_dfmax %>%
+                tab_options(heading.background.color = "black") %>% tab_options(heading.title.font.size = 15, heading.subtitle.font.size = 13,  column_labels.font.weight =  "bold")
+
+Tabla_dfmax  %>%
+  gt::text_transform(locations = cells_body(columns = vars(Mapa)), fn = function(x) {gt::web_image(x, height = 50)}) %>%  cols_align(align = "center")
+```
+
+```{r echo=FALSE, eval=TRUE}
+ggplot() + geom_sf(data = peninsula_y_canarias, color = "black") +
+    geom_sf(data = INEMAPAA4, aes(geometry = geometry, fill = Total)) +
+  geom_sf(data = INEMAPA4b, aes(geometry = geometry, fill = Total)) +
+  theme(panel.background = element_rect(fill = "azure")) +
+  transition_manual(Trimestre) + theme_void() + labs(title="TASA DE DESEMPLEO FEMENINO -  Periodo: {current_frame}",
+    caption = "Datos extraidos del INE") +
+  theme(plot.title = element_text(size = 18,
+    hjust = 0.6, color="black")) +
+  scale_fill_viridis_c(direction = -1, option = "inferno")
+```
+
+<br>
+
+#### **¿Y LA TASA DE PARO MASCULINA?**
+
+
+```{r echo=FALSE, eval=TRUE}
+INEMAPA5 <- INEE %>%
+  filter(Sexo == "Hombres") %>%
+  filter(CCAA != "Total Nacional") %>%
+  filter(Edad == "Total") %>%
+  filter(Año == "2020") %>%
+filter(CCAA != "Ceuta") %>% filter(CCAA != "Melilla")
+
+df_inb <-inner_join(peninsula_y_canarias, INEMAPA5, by= c("NombreCCAA" = "CCAA"))
+INEMAPAA5 <- df_inb %>% select(NombreCCAA, geometry, Total, Trimestre)
+
+INEMAPA5b <- INEMAPAA5 %>% filter(Trimestre == "1")
+```
+
+```{r echo=FALSE, eval=TRUE}
+ggplot() + geom_sf(data = peninsula_y_canarias, color = "black") +
+    geom_sf(data = INEMAPAA5, aes(geometry = geometry, fill = Total)) +
+  geom_sf(data = INEMAPA5b, aes(geometry = geometry, fill = Total)) +
+  theme(panel.background = element_rect(fill = "azure")) +
+  transition_manual(Trimestre) + theme_void() + labs(title="TASA DE DESEMPLEO MASCULINO - Periodo: {current_frame}",
+    caption = "Datos extraidos del INE") +
+  theme(plot.title = element_text(size = 18,
+    hjust = 0.6, color="black")) +
+  scale_fill_viridis_c(direction = -1, option = "inferno")
+```
+
+```{r echo=FALSE, eval=TRUE}
+INEMAPA5bb <- INEMAPA5 %>% slice_max(Total, n=1)
+Mapa <- "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Localizaci%C3%B3n_de_Canarias_new.svg/1200px-Localizaci%C3%B3n_de_Canarias_new.svg.png"
+
+df_maxH <- INEMAPA5bb %>% add_column(Mapa)
+df_maxH <- df_maxH %>% select(-c(Sexo, n_CCAA, Edad))
+
+Tabla_dfmaxH<- df_maxH %>% gt()
+
+Tabla_dfmaxH <- Tabla_dfmaxH %>%
+                   tab_header(title = md("**CCAA CON MÁS PARO MASCULINO (%)**"))
+
+Tabla_dfmaxH <- Tabla_dfmaxH %>%
+                tab_options(heading.background.color = "black") %>% tab_options(heading.title.font.size = 15, heading.subtitle.font.size = 13,  column_labels.font.weight =  "bold")
+
+Tabla_dfmaxH  %>%
+  gt::text_transform(locations = cells_body(columns = vars(Mapa)), fn = function(x) {gt::web_image(x, height = 50)}) %>%  cols_align(align = "center")
+```
+
+Como podemos ver tras la evolución de los mapas y como se ha comentado anteriormente, las mujeres son las que más están sufriendo los estragos del desempleo por la pandemia. 
+Además, los datos recogidos en la encuesta de Población Activa apuntan que en el tercer trimestre de 2020 264.700 mujeres perdieron su empleo, frente a 90.300 hombres. Por tanto, como informa Andrea Vicario en el diario digital Nueva Tribuna, **la tasa de paro femenina es 4 puntos superior a la de los hombres**.
+
+```{r echo=TRUE, eval=FALSE}
+#Este es el código que he utilizado para hacer los mmapas. Mismo procedimiento para el desempleo masculino.
+ggplot() + geom_sf(data = peninsula_y_canarias, color = "black") +
+    geom_sf(data = INEMAPAA4, aes(geometry = geometry, fill = Total)) +
+  geom_sf(data = INEMAPA4b, aes(geometry = geometry, fill = Total)) +
+  theme(panel.background = element_rect(fill = "azure")) +
+  transition_manual(Trimestre) + theme_void() + labs(title="TASA DE DESEMPLEO FEMENINO -  Periodo: {current_frame}",
+    caption = "Datos extraidos del INE") +
+  theme(plot.title = element_text(size = 18,
+    hjust = 0.6, color="black")) +
+  scale_fill_viridis_c(direction = -1)
+```
+
+```{r echo=TRUE, eval=FALSE}
+#Este es el código que he utilizado para hacer la tabla que nos muestra cuál ha sido la comunidad Autónoma con más desempleo femenino y en qué trimestre. Cogiendo los datos globales (No diferenciando por grupos de edad) 
+#Mismo procedimiento para la tasa de paro masculina. 
+INEMAPA4bb <- INEMAPA4 %>% slice_max(Total, n=1)
+Mapa <- "https://2.bp.blogspot.com/-3ocbiESoRJY/UeP7h0Lf-VI/AAAAAAAABJM/bLi3UFnZaPs/s1600/ZONA+SUR.jpg"
+
+df_max <- INEMAPA4bb %>% add_column(Mapa)
+df_max <- df_max %>% select(-c(Sexo, n_CCAA, Edad))
+
+Tabla_dfmax<- df_max %>% gt()
+
+Tabla_dfmax <- Tabla_dfmax %>%
+                   tab_header(title = md("**CCAA CON MÁS PARO FEMENINO**"))
+
+Tabla_dfmax <- Tabla_dfmax %>%
+                tab_options(heading.background.color = "black") %>% tab_options(heading.title.font.size = 15, heading.subtitle.font.size = 13,  column_labels.font.weight =  "bold")
+
+Tabla_dfmax  %>%
+  gt::text_transform(locations = cells_body(columns = vars(Mapa)), fn = function(x) {gt::web_image(x, height = 50)}) %>%  cols_align(align = "center")
+```
+<br>
+
+## 7. DESEMPLEO EN LA COM.VALENCIANA {.tabset}
+
+### <FONT COLOR="violetred">**Distribución tasa desempleo**</FONT>
+
+Es importante tener en cuenta que los datos represenetados en el gráfico circular corresponden al desempleo para cada grupo de edad dividido entre la suma de todos estos, para representar la proporción de cada uno y que la suma total de el 100% (Es decir, de 16 a 19 años en el segundo trimestre de 2020 en la Comunidad Valenciana hubo una tasa de paro del 77,64%. Todo y que sobre el total del paro, teniendo en cuenta la suma de todas las tasas, representó el 52,3%)
+
+```{r echo=FALSE, eval=TRUE}
+INE20T2 <- INE %>% 
+  filter(Año == "2020") %>% 
+  filter(Sexo == "Mujeres") %>% 
+  filter(CCAA == "ComunitatValenciana") %>%
+  filter(Trimestre == "2") %>% 
+  filter(Edad != "Total") %>% 
+  filter(Edad != "Menores de 25 años") %>% 
+  filter(Edad != "25 y más años") %>% 
+  mutate(TotalT = (Total/148.32)*100)
+```
+
+
+```{r}
+trim2 <- ggplot(INE20T2, aes("", TotalT, fill = Edad)) + 
+  geom_bar(stat = "identity", color="white") +
+  coord_polar(theta = "y") +  
+  theme_void() +  
+  scale_fill_manual(values=c("seagreen2","orchid1","olivedrab1","aquamarine")) + geom_text(aes(label=percent(TotalT/100)), 
+    position = position_stack(vjust = 0.5), color = "black", size = 2.5) + 
+  labs(subtitle = "Segundo trimestre") + 
+  theme(plot.subtitle = element_text(hjust = 0.5)) + 
+  theme(legend.position = "none") 
+#Hago lo mismo para los otros trimestres y para el paro masculino-
+
+```
+
+```{r echo=FALSE, eval=TRUE}
+INE20T1 <- INE %>% filter(Año == "2020") %>%
+  filter(Sexo == "Mujeres") %>% 
+  filter(CCAA == "ComunitatValenciana") %>%
+  filter(Trimestre == "1") %>% 
+  filter(Edad != "Total") %>% 
+  filter(Edad != "Menores de 25 años") %>% 
+  filter(Edad != "25 y más años") %>% 
+  mutate(TotalT = (Total/108.20)*100)
+
+trim1 <- ggplot(INE20T1, aes("", TotalT, fill = Edad)) +
+  geom_bar(stat = "identity", color="white") + 
+  coord_polar(theta = "y") +  theme_void() +  scale_fill_manual(values=c("seagreen2","orchid1","olivedrab1","aquamarine")) + geom_text(aes(label=percent(TotalT/100)), position = position_stack(vjust = 0.5), 
+    color = "black", size = 2.5) + 
+  labs(subtitle = "Primer trimestre") + 
+  theme(plot.subtitle = element_text(hjust = 0.5)) +
+  theme(legend.position = "none")
+```
+
+```{r echo=FALSE, eval=TRUE}
+INE20T3 <- INE %>% filter(Año == "2020") %>% filter(Sexo == "Mujeres") %>% filter(CCAA == "ComunitatValenciana") %>% filter(Trimestre == "3") %>% filter(Edad != "Total") %>% filter(Edad != "Menores de 25 años") %>% filter(Edad != "25 y más años") %>% mutate(TotalT = (Total/132.31)*100)
+
+trim3 <- ggplot(INE20T3, aes("", TotalT, fill = Edad)) + geom_bar(stat = "identity", color="white") + coord_polar(theta = "y") +  theme_void() +  scale_fill_manual(values=c("seagreen2","orchid1","olivedrab1","aquamarine")) + geom_text(aes(label=percent(TotalT/100)), position = position_stack(vjust = 0.5), color = "black", size = 2.5) + labs(subtitle = "Tercer trimestre") + theme(plot.subtitle = element_text(hjust = 0.5)) 
+```
+
+
+```{r echo=FALSE, eval=TRUE}
+#Hago lo mismo pero ahora para la distribución del paro en los Hombres
+INE20H2 <- INE %>% filter(Año == "2020") %>% filter(Sexo == "Hombres") %>% filter(CCAA == "ComunitatValenciana") %>% filter(Trimestre == "2") %>% filter(Edad != "Total") %>% filter(Edad != "Menores de 25 años") %>% filter(Edad != "25 y más años")  %>% mutate(TotalT = (Total/114.38)*100)
+
+TRIM2 <- ggplot(INE20H2, aes("", TotalT, fill = Edad)) + geom_bar(stat = "identity", color="white") + coord_polar(theta = "y") +  theme_void() +  scale_fill_manual(values=c("seagreen2","orchid1","olivedrab1","aquamarine")) + geom_text(aes(label=percent(TotalT/100)), position = position_stack(vjust = 0.5), color = "black", size = 2.5) +  theme(legend.position = "none")
+
+
+INE20M1 <- INE %>% filter(Año == "2020") %>% filter(Sexo == "Hombres") %>% filter(CCAA == "ComunitatValenciana") %>% filter(Trimestre == "1") %>% filter(Edad != "Total") %>% filter(Edad != "Menores de 25 años") %>% filter(Edad != "25 y más años")  %>% mutate(TotalT = (Total/83.34)*100)
+
+TRIM1 <- ggplot(INE20M1, aes("", TotalT, fill = Edad)) + geom_bar(stat = "identity", color="white") + coord_polar(theta = "y") +  theme_void() +  scale_fill_manual(values=c("seagreen2","orchid1","olivedrab1","aquamarine")) + geom_text(aes(label=percent(TotalT/100)), position = position_stack(vjust = 0.5), color = "black", size = 2.5)  + theme(legend.position = "none") 
+
+INE20M3 <- INE %>% filter(Año == "2020") %>% filter(Sexo == "Hombres") %>% filter(CCAA == "ComunitatValenciana") %>% filter(Trimestre == "3") %>% filter(Edad != "Total") %>% filter(Edad != "Menores de 25 años") %>% filter(Edad != "25 y más años")  %>% mutate(TotalT = (Total/103.41)*100)
+
+TRIM3 <- ggplot(INE20M3, aes("", TotalT, fill = Edad)) + geom_bar(stat = "identity", color="white") + coord_polar(theta = "y") +  theme_void() +  scale_fill_manual(values=c("seagreen2","orchid1","olivedrab1","aquamarine")) + geom_text(aes(label=percent(TotalT/100)), position = position_stack(vjust = 0.5), color = "black", size = 2.5)
+```
+
+<br>
+
+```{r echo=FALSE, eval=TRUE, out.width="75%"}
+PATCH <- (trim1 + trim2 + trim3) / (TRIM1 + TRIM2 + TRIM3)
+PATCH + plot_annotation(title = "DISTIRBUCIÓN DEL DESEMPLEO EN LA COM.VALENCIANA (Año 2020)", subtitle= "Primera fila corresponde al paro femenino, segunda al masculino") 
+```
+
+Mediante este gráfico, podemos comprovar lo que se ha mostrado previamente, el grupo de edad que ha presentado una mayor tasa de paro ha sido el de menor edad, es deicr, aquel que va de 16-19 años. Seguido del de 20-24 años. 
+Así mismo, observamos que el % de desempleoo femino, por lo general, ha sido superior al de los hombres en la Comunidad Valenciana, todo y que no han habido grandes diferencias. 
+
+Cabe resaltar además que en el segundo trimestre las tasas de paro fueron mayor que en el primer trimestre. Así como que del segundo al tercer trimestre, el desempleo para el grupo de edad de 16 a 19 años disminuyó, mientras que el de 20 a 24 años, también dentro de la edad considerada como paro juvenil, aumentó.
+
+<br>
+
+<center><FONT COLOR="deeppink">**¿Qué genero presenta una tasa de paro mayor en la Comunidad Valenciana?**</FONT></center>
+
+
+```{r out.width="85%"}
+INEVLC <- INE %>% filter(n_CCAA == "10") %>% 
+  filter(Sexo != "Ambos sexos") %>% 
+  filter(Edad == "Total") %>% 
+  unite(Periodo, Año:Trimestre, sep = ".")
+
+INEVLC$Periodo <- as.numeric(as.character(INEVLC$Periodo))
+INEVLC <- transform(INEVLC, Periodo = as.numeric(Periodo))
+
+a <- ggplot(INEVLC, aes(Periodo, Total, group = Sexo, color=Sexo)) + 
+  geom_line(size  = 0.9) + 
+  geom_point() + 
+  scale_color_manual(values=c("seagreen3","purple")) + 
+  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme_minimal() +
+  geom_vline(xintercept = 2015) + 
+  geom_hline(yintercept = 11)
+
+a + theme(legend.position = "bottom", 
+  legend.direction = "horizontal") + transition_reveal(Periodo) +  
+labs(title = "EVOLUCIÓN PARO COM. VALENCIANA. Periodo: {as.integer(frame_along)}",
+caption = "Elaboración propia con los datos del INE. 
+  Cada punto representa un trimestre de 2015-2020", 
+  y="Total paro (%)")
+
+``` 
+
+El anterior gráfico muestra como ha evolucionado la tasa de paro desde 2015 hasta 2020 para los diferentes trimestres del año, diferenciando por género. 
+
+Como podemos observar la tendencia en ambos géneros va a la par, en unos niveles no inferiores al 11%, que han ido disminuyendo a partir de 2015 y han vuelto a aumentar con la actual pandemía. Del mismo modo, se muestra, como se ha comentado anteriormente, que las mujeres sufren una tasa de desempleo mayor.
+
+Respecto a esto, cabe comentar que en algunos informes, como por ejemplo el de "Brechas de género en el mercado laboral español" se explica que las mujeres por lo general suelen estar más formadas a la hora de enfrentarse al mundo laboral, sin embargo, son las que generalmente sufren una tasa de desempleo mayor, que ronda los 6 puntos de diferencia. 
+
+Además de ello, si nos centraramos en la ocupación, habría que señalar que cobran unos salarios en torno al 20% menor y que los empleos en los que están ocupadas es en la mayoría de los casos con contratos temporales y a tiempo parcial, pese a no ser lo que en un buscaban.
+
+
+### <FONT COLOR="violetred">**Evolución según grupos edad**</FONT>
+
+<br>
+También podemos analizar la evolución del paro por los grupos de edad y sin diferenciar el sexo. En este gráfico se aprecia lo que se ha comentado previamente, que el desempleo ha aumentado, en el tercer trimestre era mayor que en el primero. Así como que los grupos con menos edad son los que se han visto más afectados en este aspecto por la crisis sanitaria actual.
+
+```{r echo=FALSE, eval=TRUE}
+INECVLC <- INEb %>% filter(n_CCAA == "10" & Sexo == "Ambos sexos") %>% select(-n_CCAA) %>% filter(Periodo %in% c("2020T1", "2020T2", "2020T3"))
+INECVLC <- INECVLC %>% filter(Edad %in% c("De 16 a 19 años", "De 20 a 24 años", "De 25 a 54 años", "De 55 y más años"))
+INECVLC$CCAA <- recode(INECVLC$CCAA, 
+ "Comunitat_Valenciana"="Comunitat Valenciana")
+INECVLC$Edad <- recode(INECVLC$Edad, 
+ "De 55 y más años"="55-65 años",
+  "De 16 a 19 años"="16-19 años",
+  "De 20 a 24 años"="20-24 años",
+  "De 25 a 54 años"="25-54 años")
+INECVLC <- INECVLC %>% arrange(Edad, Periodo)
+#str(INECVLC)
+INECVLC$Total <- as.numeric(as.character(INECVLC$Total))
+```
+
+```{r out.width="85%"}
+GPOINT <- ggplot(INECVLC, aes(x=Periodo, y=Edad, size = Total, color = Edad)) +
+    geom_point(aes(fill=Edad, alpha = 0.2),pch=21,colour="black") +
+    scale_size(range = c(9, 32), name="Total (%)")  + theme_ipsum_rc() + 
+    theme(legend.position = "none", 
+      panel.background = element_blank(), panel.grid  = element_blank()) +
+  labs(x=NULL, y=NULL, title= "EVOLUCIÓN DEL PARO TOTAL (%)", subtitle = "En la Comunidad Valenciana", caption = "Datos: INE") + 
+  geom_text(aes(label = Total), color = "black", size = 2.5) + scale_fill_manual(values=c("seagreen2","olivedrab1","aquamarine","orchid1")) 
+
+GPOINT + theme (axis.text.x = element_text(face = "bold", colour="mediumorchid4", size=rel(1.5)),
+           axis.text.y = element_text(face = "bold",
+             colour="mediumorchid4", size=rel(1), hjust=0.5)) + 
+  transition_states(Edad) 
+```
+
+
+
+## 8. EL DESEMPLEO EN EUROPA {.tabset}
+
+### <FONT COLOR="violetred">**Tasa de desempleo en Europa**</FONT>
+
+Mediante el siguiente gráfico evolutivo, se muestra como ha ido variando la tasa de paro desde 2008 hasta 2019 en la Unión Europea.
+
+```{r echo=FALSE, eval=TRUE}
+#Preparando los datos
+paroag <- paroa %>% filter(edad == "Y15-74") %>% filter(!(geo %in% c("Euro area - 19 countries  (from 2015)", "European Union - 27 countries (from 2020)", "European Union - 28 countries (2013-2020)")))
+paroag$geo <- recode(paroag$geo, 
+ "Germany (until 1990 former territory of the FRG)"="Germany")
+paroag <- paroag %>% select(-edad)
+paroag <- paroag %>% rename("id" = geo) %>% rename("date" = Año) %>% rename("value" = valor)
+
+paroag <- paroag %>%
+  group_by(date) %>%
+  arrange(date, desc(value)) %>%
+  mutate(ranking = row_number())%>% filter(ranking <= 10)
+
+paroag$id <- gsub("North Macedonia", "Macedonia", paroag$id)
+nb.cols <- 20
+mycolors <- colorRampPalette(brewer.pal(11, "Set3"))(nb.cols)
+```
+
+```{r}
+a <- ggplot(paroag)+
+  geom_col(aes(ranking,value,fill=id))+
+  scale_fill_manual(values=mycolors)+
+  geom_text(aes(ranking,value,label=as.factor(value)),hjust=-0.2,size=5)+
+  geom_text(aes(ranking, y=0 , label = id), hjust=1.1,size=5) +
+  geom_text(aes(x=10, y=max(value) , label = as.factor(date)),
+    vjust = 0, hjust=0.5, alpha = 0.1,  col = "black", size = 20)+
+  labs(title = "10 PAÍSES CON MAYOR DESEMPLEO EN LA UNIÓN EUROPEA (%)",
+       subtitle = "De 2008-2019",
+       x=NULL,
+       y=NULL)+
+  coord_flip(clip = "off")+
+  scale_x_reverse()+
+  theme_minimal()+
+  theme(legend.position = "none",
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0, size=20,face="bold"),
+        plot.subtitle = element_text(hjust = 0, size=12, face="italic"),
+        plot.margin = margin(1, 4, 1, 3, "cm"))+
+  transition_states(date,transition_length = 1,state_length = 0,wrap = FALSE)
+```
+
+```{r out.width="100%"}
+animate(a,
+        nframes = 400,
+        fps = 16,
+        end_pause = 150,
+        width = 1000,
+        height = 600,
+        type = "cairo")
+```
+
+
+Como se puede observar, los países que se han mantenido en los primeros puestos, han sido Greica, España, Montenegro y Macedonia.
+
+Como podemos observar, España ha pasado de estar en el segundo lugar al incio de la crisis económica de 2008 al 4to lugar en 2019. Mientras que el aumento en Grecia ha sido más pronunciado. 
+
+<br>
+<br>
+
+<FONT COLOR="violetred">**DESEMPLEO PARA 6 PAÍSES EUROPEOS:**</FONT>
+
+
+En los siguientes gráficos se mostrará el desempleo de España y de otros países de la Unión Europea: Francia, Italia, Portugal, Grecia y Finlandia. 
+
+```{r, out.width="85%"}
+paroF <- paro %>% filter(edad == "Y20-64") %>% filter(geo %in% c("Spain", "Italy", "France", "Portugal", "Finland", "Greece")) %>% mutate(País = case_when(geo == "Finland" ~ "Finlandia", 
+geo == "France" ~ "Francia", 
+geo == "Greece" ~ "Grecia",
+geo == "Portugal" ~ "Portugal",
+geo == "Spain" ~ "España",
+geo == "Italy" ~ "Italia")) 
+paroF <- paroF %>% select(-geo) %>% select(Fecha, País, valor)
+
+ggplot(paroF, aes(Fecha, valor)) + geom_line(size = 1.2, color = "black") +
+  geom_area(fill = "orchid4", size = 0.6) + 
+  facet_wrap(~País) + 
+  theme_stata(base_size = 12, base_family = "Arial", scheme = "s1color") +
+  labs(y = "Valor (%)", x = "Año", 
+    title = "TASA DE DESEMPLEO (%)", 
+    caption = "Elaboración propia. Datos: Eurostat")
+
+```
+
+A través del gráfico, observamos como para estos 6 países, Grecia es la que mayor tasa de desempleo presenta seguida de España, teniendo su pico en 2014, ambas, en plena crisis económica. 
+Por contra, Finlandia, muestra una tasa de paro con unos niveles no superiores al 10%, semejante al de Francia. Portugal, en cambio, muestra un aumento al inicio de la crisis económica y su pico en 2014 al igual que España y Grecia, todo y que con una tasa de desempleo menor que  estos otros. 
+
+No obstante, hay que  tener en cuenta que el mercado de trabajo de cada uno de estos países presenta unas peculiaridades diferentes sobre todo en el caso de Finlandia, que habría que considerar a la hora de hacer un análisis con más profundidad. 
+
+Por ejemplo, como curiosidad, en **Finlandia**, existen tres modalidades de prestación por desempleo:
+
+- **PRESTACIÓN POR DESEMPLEO BÁSICA** - La que se percibe de la Seguridad Social finesa, Kelea (Una cantidad fija en torno a 700 euros al mes o superior si se tienen hijos a cargo)
+
+- **CAJA DE SEGURO**, es decir, la mayoría de finalndeses se suscriben a un **seguro por desempleo**, esto se denominan "Cajas de Seguro por Desempleo".
+
+- **SUBSIDIO DE MERCADO LABORAL** Esta es para los que no han contratado un seguro por desempleo ni han cumplido con los requisitos establecidos para cobrar la prestación básica. (Esta es otorgada también por Kela y se recibe una cantidad en torno a 700 euros)
+
+Además, hay que tener en cuenta que el mercado de trabajo que hay en el país escandinavo es mucho más flexible que, por ejemplo, el de España, donde hay una rigideza a la baja en los salarios, lo que hace que la tasa de desempleo sea mayor que si no hubieran tanta rigidez. 
+
+
+### <FONT COLOR="violetred">**Tabla**</FONT>
+
+```{r}
+paroTabla <- paroag %>% rename("País" = id) %>% rename("Año" = date) %>% rename("Valor" = value) %>% select(País, Año, Valor)
+
+datatable(paroTabla, 
+  caption = "Tabla para consultar los datos del gráfico anterior",
+  extensions = 'Buttons', 
+  options = list(dom = 'Blfrtip',  buttons = c('copy', 'excel', 'pdf', 'print'), 
+    pageLength = 10, 
+    autoWidth = TRUE))
+```
+
+A través del gráfico, observamos como para estos 6 países, Grecia es la que mayor tasa de desempleo presenta seguida de España, teniendo su pico en 2014, ambas, en plena crisis económica. 
+Por contra, Finlandia, muestra una tasa de paro con unos niveles no superiores al 10%, semejante al de Francia. Portugal, en cambio, muestra un aumento al inicio de la crisis económica y su pico en 2014 al igual que España y Grecia, todo y que con una tasa de desempleo menor que  estos otros. 
+
+No obstante, hay que  tener en cuenta que el mercado de trabajo de cada uno de estos países presenta unas peculiaridades diferentes sobre todo en el caso de Finlandia, que habría que considerar a la hora de hacer un análisis con más profundidad. 
+
+Por ejemplo, como curiosidad, en **Finlandia**, existen tres modalidades de prestación por desempleo:
+
+- **PRESTACIÓN POR DESEMPLEO BÁSICA** - La que se percibe de la Seguridad Social finesa, Kelea (Una cantidad fija en torno a 700 euros al mes o superior si se tienen hijos a cargo)
+
+- **CAJA DE SEGURO**, es decir, la mayoría de finalndeses se suscriben a un **seguro por desempleo**, esto se denominan "Cajas de Seguro por Desempleo".
+
+- **SUBSIDIO DE MERCADO LABORAL** Esta es para los que no han contratado un seguro por desempleo ni han cumplido con los requisitos establecidos para cobrar la prestación básica. (Esta es otorgada también por Kela y se recibe una cantidad en torno a 700 euros)
+
+Además, hay que tener en cuenta que el mercado de trabajo que hay en el país escandinavo es mucho más flexible que, por ejemplo, el de España, donde hay una rigideza a la baja en los salarios, lo que hace que la tasa de desempleo sea mayor que si no hubieran tanta rigidez. 
+
+
+## EVOLUCIÓN TASA DE PARO JUVENIL 
+
+El paro juvenil incluye el paro de las personas jóvenes, definidas por las Naciones Unidas, como aquellas personas que tienen una edad comprendida entre 15 y 24 años.
+
+**Evolución del desempleo juvenil**
+Para los 6 países escogidos también, en el gráfico anterior, estos son: Finlandia, Francia, Grecia, Italia, Portugal y España. 
+
+```{r echo=FALSE, eval=TRUE}
+paroJ <- paro %>% filter(geo %in% c("Spain", "France", "Portugal", "Italy", "Greece", "Finland")) %>% filter(edad == "Y15-24") %>% mutate(País = case_when(geo == "Finland" ~ "Finlandia",  geo == "France" ~ "Francia",  geo == "Greece" ~ "Grecia", geo == "Portugal" ~ "Portugal", geo == "Spain" ~ "España", geo == "Italy" ~ "Italia")) 
+paroJ <- paroJ %>% select(-geo) %>% select(Fecha, País, valor)
+
+paroJ <- paroJ %>% mutate(Fechaa = case_when(Fecha == "2005-01-01" ~ 2005, Fecha == "2006-01-01" ~ 2006, Fecha == "2007-01-01" ~ 2007, Fecha == "2008-01-01" ~ 2008, Fecha == "2009-01-01" ~ 2009, Fecha == "2010-01-01" ~ 2010, Fecha == "2011-01-01" ~ 2011, Fecha == "2012-01-01" ~ 2012, Fecha == "2013-01-01" ~ 2013, Fecha == "2014-01-01" ~ 2014, Fecha == "2015-01-01" ~ 2015, Fecha == "2016-01-01" ~ 2016, Fecha == "2017-01-01" ~ 2017, Fecha == "2018-01-01" ~ 2018, Fecha == "2019-01-01" ~ 2019))
+paroJ <- paroJ %>% select(-Fecha) %>% select(Fechaa, País, valor)
+paroJ <- paroJ %>% rename(Fecha = "Fechaa")
+
+
+#str(paroJ)
+```
+
+
+```{r out.width="80%"}
+paroJ %>% ggplot(aes(Fecha, valor, size=valor, color=País)) + 
+  geom_point(alpha = 0.8) +   
+  scale_size(range = c(2, 20), name="Valor (%))")  + 
+   geom_line(size = 1) +
+  facet_wrap(~País) +
+  scale_fill_viridis(discrete=TRUE, guide=FALSE, option="A") + 
+  theme_hc() + 
+  theme(legend.position = "none") + 
+  labs(title = "Evolución del desempleo Juvenil - Periodo: 2005-2019", 
+    subtitle = "Año: {as.integer(frame_along)}", 
+    caption = "Datos extraidos del Eurostat", x=NULL, y="Valor (%)") + transition_reveal(Fecha) + 
+  theme(strip.background = element_rect(colour = "black",
+    fill = alpha("green",0.4)))
+```
+
+```{r}
+#Preparando los datos
+paro_joven$geo <- recode(paro_joven$geo, 
+ "Germany (until 1990 former territory of the FRG)"="Germany", 
+  "Czechia" = "Czech Republic", 
+  "North Macedonia" = "Macedonia")
+
+paro_joven$time <- as.numeric(as.character(paro_joven$time))
+
+world <- rnaturalearth::ne_countries(scale = "medium", returnclass = "sf")
+world_points<- st_centroid(world)
+world_points <- cbind(world, st_coordinates(st_centroid(world$geometry)))
+
+df_inner <- inner_join(world, paro_joven, by= c("sovereignt" = "geo"))
+df_paro <- df_inner %>% select(sovereignt, time, values)
+
+df_parob <- paro_joven %>% filter(time == 2013)
+df_inne2r <- inner_join(world, df_parob, by= c("sovereignt" = "geo"))
+df_parob <- df_inne2r %>% select(sovereignt, time, values)
+```
+
+```{r out.width="80%"}
+ggplot() + geom_sf(data = world, color = "black") + 
+    geom_sf(data = df_paro, aes(geometry = geometry, fill = values)) + 
+  geom_sf(data = df_parob, aes(geometry = geometry, fill = values)) + coord_sf(xlim = c(-13.00, 36.00), ylim = c(35, 67.44), expand = FALSE) +
+  theme(panel.background = element_rect(fill = "azure")) +
+  transition_manual(time) + theme_void() + labs(title="PARO JUVENIL EUROPEO Año: {current_frame}", 
+    caption = "Datos extraidos del Eurostat y Natural Earth") +
+  theme(plot.title = element_text(size = 18,
+    hjust = 0.6, color="darkmagenta")) +
+  scale_fill_viridis_c(direction = -1)
+```
+
+
+
+```{r fig.show = "hold", out.width = "75%", fig.align = "center", echo=FALSE, eval=FALSE}
+#install.packages("dygraphs")
+paroD <- paro %>% filter(geo == "Spain") %>% filter(edad == "Y15-24")
+data <- ymd(paroD$Fecha)
+don <- xts(x = paroD$valor, order.by = data)
+dygraph(don, ylab = "Valores (%)", main = "Tasa desempleo en España. Grupo de edad: De 15 a 24 años") %>%
+  dyOptions(drawPoints = TRUE, labelsUTC = TRUE, fillGraph=TRUE, fillAlpha=0.1, drawGrid = FALSE, colors="#d85a84") %>%
+  dyRangeSelector(fillColor = "aquamarine", strokeColor = "black") %>%
+  dyCrosshair(direction = "vertical") %>%
+  dyHighlight(highlightCircleSize = 5, highlightSeriesBackgroundAlpha = 0.2, hideOnMouseOut = FALSE)  %>%
+  dyRoller(rollPeriod = 1) 
+
+```
+
+
+------------------------
+
+## 9. OTROS DATOS DEL MERCADO DE TRABAJO... {.tabset}
+
+### <FONT COLOR="violetred">**Mujeres en los puestos directivos**</FONT>
+
+<br>
+<div class = "caja-gris-gainboro">
+El concepto **TECHO DE CRISTAL** se oirignó en un discurso de Marilyn Loden en 1978. 
+Se define como la **fuerza invisible que impide a las mujeres acceder a los cargos directivos.**
+</div>
+
+<br>
+<center><img src="Imagenes/Imagen1.png" width="650px" /></center>
+
+<br>
+Para analizar esto usaré los datos obtenidos de la OCDE sobre el % de mujeres directivas. 
+Los datos disponibles van desde el año 2011 hasta el 2018.
+
+En primer lugar decir que con el wordcloud podemos observar que para el 2018 los 10 países que tenían mayor % de mujeres directivas están mostrados con un mayor tamaño en las letras. Así como, los que tenían un menor % aparecen con un tamaño menor. Entre estos últimos destacaría Japón, India y Corea como países en los que menos % de mujeres pueden acceder a puestos directivos. 
+
+```{r echo=FALSE, eval=TRUE}
+mujeres_directivas18 <- mujeres_directivas %>% filter(TIME == "2018") 
+mujeres_directivas18$Country <- recode(mujeres_directivas18$Country, 
+ "China (People's Republic of)"="China",
+  "Iceland" = "Islandia",
+  "Russia" = "Rusia",
+  "Poland" = "Polonia",
+  "New Zeland" = "Nueva Zelanda",
+  "United States" = "Estados Unidos",
+  "Lithuania" = "Lituania",
+  "Sweden" = "Suecia",
+  "Hungary" = "Hungria")
+mujeres_directivas18$Value <- as.numeric(as.character(mujeres_directivas18$Value))
+mujeres_directivas18 <- mujeres_directivas18 %>% slice_max(Value, n=10)
+mujeres_directivas18 <- mujeres_directivas18 %>% select(Country, Value)
+```
+
+
+```{r echo=FALSE, eval=TRUE}
+mujeres_directivas18b <- mujeres_directivas %>% filter(TIME == "2018") 
+mujeres_directivas18b$Country <- recode(mujeres_directivas18b$Country, 
+ "China (People's Republic of)"="China",
+  "Czech Republic" = "República Checa",
+  "Italy" = "Italia",
+  "Greece" = "Grecia",
+  "Denmark" = "Dinamarca",
+  "Netherlands" = "Países Bajos",
+  "Luxembourg" = "Luxemburgo",
+  "Turkey" = "Turquía",
+  "Japan" = "Japón",
+  "India" = "India",
+  "Korea" = "Corea")
+mujeres_directivas18b$Value <- as.numeric(as.character(mujeres_directivas18b$Value))
+mujeres_directivas18b <- mujeres_directivas18b %>% arrange(Value) %>% slice_min(Value, n=10)
+mujeres_directivas18b <- mujeres_directivas18b %>% select(Country, Value)
+
+```
+
+
+En el siguiente gráfico podemos ver como ha evolucionado esta variable, mujeres directivas, en España:
+
+```{r}
+mujeres_directivasS <- mujeres_directivas %>% 
+  filter(Country %in% c("Spain")) %>% 
+  mutate(País = case_when(Country == "Spain" ~ "España")) 
+mujeres_directivasS <- mujeres_directivasS %>% select(País, TIME, Value)
+mujeres_directivasS$Value <- as.numeric(as.character(mujeres_directivasS$Value))
+mujeres_directivasS$TIME <- as.numeric(as.character(mujeres_directivasS$TIME))
+#str(mujeres_directivasS)
+mujeresdirectivas_ends <- mujeres_directivasS %>% 
+  filter(País == "España") %>% 
+  group_by(País) %>% 
+  top_n(1, TIME) %>% pull(Value) 
+```
+
+```{r fig.align = "center", out.height="50%", out.width="75%"}
+grafMD <- mujeres_directivasS %>% 
+  ggplot(aes(x = TIME, y = Value, color = País)) + 
+  geom_line(size = 1.8, color="green") + 
+  geom_point(size = 2 )  + 
+  scale_y_continuous(sec.axis = sec_axis(~ ., breaks = mujeresdirectivas_ends)) + 
+     scale_x_continuous(expand = c(0, 0))  + 
+  scale_x_continuous(breaks = seq(2011, 2018, 1), limits = c(2011, 2018)) + 
+  theme_minimal() + 
+  transition_reveal(TIME) + ease_aes('linear')
+grafMD + labs(title = "Evolución mujeres directivas en España (%)", 
+  subtitle = "Año: {as.integer(frame_along)}",
+  caption = "Datos extraídos de la OCDE", x = NULL, y="VALOR (%)") + 
+  theme(legend.position="none") + 
+  theme(plot.title = element_text(size = 16, hjust = 0.5, face = "bold")) +
+  theme(plot.subtitle = element_text(size = 14, hjust = 0.5))
+```
+
+Además de la evolución que podemos observar con el gráfico anterior cabe decir que, el número de mujeres directivas en España, ha crecido en 2020 hasta el 34%, según el informe de "Women in Business 2020". Siendo este uno de los impulsos más altos de los últimos 16 años.
+
+```{r echo=FALSE, eval=TRUE}
+mujeres_directivasP <- mujeres_directivas %>% filter(Country %in% c("Spain", "France", "Germany", "Itlay", "Greece", "Portugal")) %>% mutate(País = case_when(Country == "Spain" ~ "España", Country == "Germany" ~ "Alemania", Country == "Italy" ~ "Italia", Country =="Greece" ~ "Grecia", Country == "Portugal" ~ "Portugal" , Country == "France" ~ "Francia")) 
+mujeres_directivasP <- mujeres_directivasP %>% select(País, TIME, Value)
+mujeres_directivasP$Value <- as.numeric(as.character(mujeres_directivasP$Value))
+mujeres_directivasP$TIME <- as.numeric(as.character(mujeres_directivasP$TIME))
+```
+
+Por último, he comparado el % de mujeres directivas en los distintos años con otros países europeos, tales como Francia, Italia, Poturgal, Alemania y Grecia. con el fin de ver si el % de mujeres directivas es similar a estos o no. 
+
+```{r fig.align = "center", out.height="50%", out.width="75%"}
+ ggplot(mujeres_directivasP, aes(x = TIME, y = Value, color = País, group=País)) + 
+  geom_line() + geom_point() + 
+     scale_x_continuous(expand = c(0, 0)) + 
+  scale_x_continuous(breaks = seq(2011, 2018, 1),
+    limits = c(2011, 2018)) +
+  geom_text(aes(label = Value), size = 2.20, nudge_y = 0.4) +
+  theme_cowplot()  + geom_line(data = mujeres_directivasS, size = 1.50) +
+    geom_point(data = mujeres_directivasS, size = 1.50) + 
+  labs(title = "Evolución mujeres directivas (%)", 
+  subtitle = "Para 5 países europeos",
+  caption = "Datos extraídos de la OCDE", x = NULL, y="VALOR (%)") + 
+  theme(plot.title = element_text(size = 12, hjust = 0.5, face = "bold")) +
+  theme(plot.subtitle = element_text(size = 10, hjust = 0.5)) 
+
+```
+
+Como se puede observar tras el gráfico, en 2011 el porcentaje de mujeres directivas en Francia era superior al de los otros países considerados, con una tasa de 38,7%. Seguido de Portugal, España y Alemania, con unos valores idénticos y en última posición con un 23% Grecia. 
+
+La evolución de cada uno de estos países ha sido diferente. En el caso de Francia se observa una fuerta discimunicón a partir del año 2012 alcanzando su valor más bajo en 2015 con un 31,1% de mujeres directivas, valor que coincide con el de España para este mismo año.
+
+en el caso de Portugal se muestran diferentes  subidas y bajadas a lo largo de los años. En el último año disponible, 2018 el porcentaje es similar al de Francia (34% aprox)
+
+En Grecia también se observar diferentes picos, siendo el más elevado el del año 2017, con un valor del 28,9%.
+
+Por lo que respecta a Alemania y España, decir que la evolución ha sido similar y con unos valores bastante constantes. Todo y que partian de unos mismos valores, España presenta unas cifras superiores. 
+
+
+```{r fig.align = "center"}
+mdirect <- rbind(mujeres_directivas18,mujeres_directivas18b)
+wd <- wordcloud2(mdirect, size=0.3, backgroundColor="honeydew")
+```
+
+
+
+### <FONT COLOR="violetred">**La brecha salarial**</FONT>
+
+
+Existe <FONT COLOR="Red"> **brecha salarial**</FONT> cuando **el valor del trabajo de un hombre y una mujer es el mismo, pero en cambio, el salario recibido no.**
+
+En 1980 se aprobó en España el Estatuto de los Trabajadores, a partir del cual se considera ilegal pagar distinto salario por un mismo trabajo. Por ello, las diferencias se explican principalmente por **jornadas laborales diferentes, el tipo de puesto en el que se encuentran o otros factores como la política de la empresa.**
+
+En los datos ofrecidos por la OCDE, para el caso de España, se muestra solo en 2010 y 2014, la brecha salarial era de 13.5% y 11.5%, respectivamente, por lo que se observa que ha disminuyó en estos cuatro años, todo y que aún persisten diferencias en el salario cobrado por un género y otro. 
+
+Asimismo, cabe comentar que las mujeres de la UE ganan alrededor de un 16% menor por hora que los hombres y que en 2019 la brecha salarial de género en España fue inferior a la media de la OCDE. 
+
+```{r echo = FALSE, eval=TRUE}
+brecha_salarialF <- brecha_salarial %>% filter(Indicator == "Gender wage gap at median")  %>% filter(Country != "OECD - Average")
+#str(brecha_salarialF)
+brecha_salarialF$Value <- as.numeric(as.character(brecha_salarialF$Valu))
+```
+
+Veamos el % de brecha salarial de diferentes países de la OCDE para 2018, el último año disponible:
+
+```{r}
+brecha_salarialU <- brecha_salarialF %>% 
+filter(TIME == "2018")
+packing <- circleProgressiveLayout(brecha_salarialU$Value, sizetype='area')
+packing$radius <- 0.95*packing$radius
+data <- cbind(brecha_salarialU, packing)
+dat.gg <- circleLayoutVertices(packing, npoints=50)
+```
+
+```{r echo=FALSE, eval=TRUE}
+data$Country <- recode(data$Country, 
+ "United Kingdom"="UK", 
+  "Czech Republic" = "Czech", 
+  "Slovak Republic" = "Slovak",
+  "New Zealand" = "NewZ",
+  "United States" = "USA")
+```
+
+```{r out.width="85%"}
+ ggplot() + 
+  geom_polygon(data = dat.gg, aes(x, y, group = id, fill=id), colour = "black", alpha = 0.6) + scale_fill_viridis(direction = -1, option = "magma") +
+  geom_text(data = data, aes(x, y, size=Value, 
+    label = Country), color="black") +
+    geom_text(data = data, aes(x, y-1, size=Value, 
+      label = Value), color="black") + 
+  labs(title = "Brecha salarial de género países OCDE (%)",
+    subtitle = "Calculada en la mediana.  Año: 2018", 
+    caption = "Datos: OCDE. (Para España solo hay datos disponibles del 2010 y 2014)") + coord_equal() +
+  theme_void() + 
+  theme(legend.position="none") + 
+  theme(plot.title = element_text(size = 15, hjust = 0.5)) +
+  theme(plot.subtitle = element_text(size = 12, hjust = 0.5)) + 
+  theme(plot.caption = element_text(size = 10, hjust = 0)) 
+```
+
+<br>
+De acuerdo con los datos obtenidos de los 36 países que conforman la OCDE - Organización para la Cooperación y el Desarrollo Económico - **el % de brecha salarial más alto es en COREA**
+
+En el gráfico siguiente se muestra la evolución de este país, que como podemos observar, no ha habido gran variación de 2010 a 2019 y el % de brecha salarial ronda unos valores muy altos, superiores al 30%.
+
+```{r echo=FALSE, eval=TRUE}
+brechasalarialP <- brecha_salarialF %>% arrange(desc(Value)) %>% filter(Country == "Korea") %>% filter(!(TIME %in% c("2000", "2005")))
+```
+
+```{r out.width="80%"}
+graficoKorea <- ggplot(brechasalarialP, aes(TIME, Value)) + 
+  geom_segment(aes(x=TIME, xend = TIME, y=0, yend=Value, size = 0)) + 
+  geom_point(size = 2, color="gold", 
+    fill = alpha("gold", 0.3), 
+    alpha = 0.7, shape=25,
+    stroke = 2) +  
+  ggrepel::geom_label_repel(aes(label=percent(Value/100)),
+    fill = "aquamarine", 
+    color = "black", size= 4.5,
+    box.padding = unit(1.1, "lines")) + 
+  theme(plot.background = NULL, panel.background = element_blank(), panel.grid  = element_blank(),  
+    axis.ticks = element_blank(), axis.text.y = element_blank()) + 
+  theme(legend.position = "none") + labs(x= NULL, y=NULL,
+    title= "EVOLUCIÓN BRECHA SALARIAL EN COREA (%)") + 
+  theme(plot.title = element_text(size = 19, hjust = 0.5,
+    color = "violetred4", face = "bold")) + 
+  scale_x_continuous(breaks = seq(2010, 2019, 1), limits = c(2010, 2019)) 
+
+graficoKorea <- graficoKorea + theme(axis.text.x = element_text(face="italic", colour="black", size=rel(2)))
+  
+url <- "https://www.moneyunder30.com/wp-content/uploads/2019/03/Gender-Gap.jpg"
+
+img <- image_read(url) %>%
+  image_resize("570x600") %>%
+  image_colorize(15, "white")
+
+graf <- ggdraw() + draw_image(img) + draw_plot(graficoKorea)
+graf
+```
+
+Por tanto, como se demuestra en el gráfico, se puede concluir, que **en Corea las mujeres perciben en promedio un sueldo 35,30% menor que los hombres** Por lo que esto hace que Corea sea el país con mayor diferencia de salario entre los países que conforman la OCDE.
+
+Además, cabe comentar que **con la pandemia se prevé que brecha salarial entre hombres y mujeres empeorará** (El Intransigente, 2020) ya que dos tercios de la población femenina perdió su trabajo el pasado mes de marzo.[^4]
+
+## 10. CONCLUSIONES
+
+Como conclusión decir que a través del presente trabajo he tratado de analizar el mercado de trabajo, concretamente me he centrado en el desempleo. Además, como me parecía interesante resaltar algunos aspectos de este, he tratado de mostrar algunas "curiosidades" sobre el techo de cristal y la brecha de genero.
+
+Como he nombrado en varias ocasiones a lo largo del trabajo, las mujeres y el grupo de edad más joven, este es de 16 a 24 años (Forma parte del paro juvenil) son los más afectados por la tasa de desempleo, la cual se ha agravado como consecuencia de la Pandemia. Igualmente, habría que ver cual es la evolución después de esta y si se vuelven o no a los valores previos a la crisis del 2008. 
+
+No obstante, cabe comentar también que falta para los datos del 2020 de España el cuarto trimestre, dado que el INE aún no los ha publicado. Igualmente, resulta importante destacar, que en esta Encuesta no se muestra aquellas personas que han tenido que recibir un ERTE, por lo que las cifras son más bajas que en la realidad.
+
+Respecto a la tasa de desempleo de los países Europeos, decir que Grecia se mantiene en la cabeza. De hecho, presentaba en 2019 un 17,3% (España 14,1%) Como se puede observar, estas tasas contrastan en comparación con otros países como Finlandia. Todo y que es importante tener en cuenta las características de cada mercado de trabajo, destacando, por ejemplo, la rigidez salarial en el mercado español. 
+
+En cuanto a las mujeres directivas, decir que Colombia es el país de la OCDE que en 2018 tenía un mayor porcentaje. Asimismo, España muestra una evolución creciente, todo y que aún hay grandes diferencias entre los puestos directivos llevados a cabo por un hombre y una mujer, cosa que muestra el techo de cristal existente. Por lo que hace a la brecha salarial, también se observa cierta discriminación entre el salario ganado por los hombres y el de las mujeres, siendo Corea el país con más diferencias.
+
+En suma, es importante tener en cuenta las características del mercado de trabajo español para poder mejorar el desempleo, que es un elemento básico para una mejora en el PIB de la economía. De igual modo, no hay que olvidar otros aspectos como la brecha salarial y el techo de cristal, que limitan la igualdad entre ambos sexos.
+
+
+## Referencias
+
+Para la realización del trabajo he utilizado las siguientes páginas web:
+
+Para obtener los **datos**:
+
+- <a href="http://www.oecd.org/"target="_blank">OECD</a>
+
+- <a href="https://www.ine.es/dyngs/INEbase/es/operacion.htm?c=Estadistica_C&cid=1254736176918&menu=ultiDatos&idp=1254735976595"target="_blank">INE</a>
+
+- <a href="https://ec.europa.eu/eurostat"target="_blank">EUROSTAT</a>
+
+
+Para hacer gráficos, mapas, tablas... con **RStudio**
+
+- <a href="http://www.stat.columbia.edu/~tzheng/files/Rcolor.pdf"target="_blank">Colores en R</a>
+
+- <a href="https://rstudio-pubs-static.s3.amazonaws.com/586874_20044d1bdf6a4f60be5f85113b0da5f5.html"target="_blank">Series temporales</a>
+
+- <a href="https://gonzalezgouveia.com/como-superponer-varias-graficas-en-ggplot-con-r-y-rstudio/">Superponer  varios gráficos (Patchwork)</a>
+
+- <a href="https://rstudio.github.io/crosstalk/"target="_blank">Crosstalk</a>
+
+- <a href="https://rviews.rstudio.com/2019/09/19/intro-to-ggforce/"target="_blank">ggforce</a>
+
+- <a href="https://rstudio-pubs-static.s3.amazonaws.com/460563_44403a3b087a415797de75ba3b21d17b.html">Wordcloud</a>
+
+- <a href="https://bookdown.org/gboccardo/manual-ED-UCH/construccion-de-graficos-usando-rstudio-funcionalidades-basicas-y-uso-del-paquete-ggplot2.html">Bookdown</a>
+
+- <a href="https://glin.github.io/reactable/articles/examples.html">Ejemplos tablas</a>
+
+- <a href="https://www.r-graph-gallery.com/307-add-space-in-circle-packing.html">R Graph Gallery</a>
+
+- <a href="https://rpubs.com/">RPubs</a>
+
+- <a href="https://perezp44.github.io/intro-ds-20-21-web/">Tutoriales y slides web curso</a>
+
+
+Para **interpretar los datos**:
+
+- <a href="https://www.elmundo.es/sociedad/2016/10/24/580e03d3ca4741391c8b45e7.html">El desempleo en las mujeres</a>
+
+- <a href="https://www.nuevatribuna.es/articulo/actualidad/epa-tercer-trimestre-tasa-paro-femenina-4puntos-superior-hombres/20201027102412180602.html">Comparación desempleo femenino y masculino</a>
+
+- <a href="https://elpais.com/economia/2020-04-28/los-nueve-graficos-que-explican-el-impacto-del-coronavirus-sobre-el-empleo.html">Impacto de la Covid en el desempleo</a>
+
+
+-  <a href="http://www.ces.gva.es/es/noticias/encuesta-de-poblacion-activa-epa-primer-trimestre-2020">Encuesta de población activa - Comité Econòmic i Social</a>
+
+-  <a href="http://www.mites.gob.es/es/mundo/consejerias/dinamarca/preguntas/Ficheros/Finlandia.htm">¿Cómo funciona la protección por desempleo en Finlandia?</a>
+
+-  <a href="https://aida2santos.wordpress.com/2015/10/22/desempleo-estructural-en-espana/">Desempleo estructural en España</a>
+
+-  <a href="https://elfeminismo.com/que-es-el-techo-de-cristal/">¿Qué es el techo de cristal?</a>
+
+-  <a href="https://blog.eklos.com.ar/suelo-pegajoso-y-techo-de-cristal-barreras-invisibles-para-las-mujeres-3bf72322c05a">Suelo pegajoso y techo de critstal</a>
+
+-  <a href="https://www.thisistherealspain.com/es/espana-en-el-mundo/igualdad/espana-entre-los-paises-con-mayor-porcentaje-de-mujeres-directivas-en-empresas">Mujeres directivas en España</a>
+
+----------------
+[^1]: La web del curso: <a href="https://perezp44.github.io/intro-ds-20-21-web/"target="_blank">https://perezp44.github.io/intro-ds-20-21-web/</a>
+[^2]: Comentaré también los efectos que ha tenido en el mercado de trabajo la crisi sanitaria del Covid-19
+[^3]: Forman parte de este tipo de desempleo, por ejemplo, aquellas personas que pudiendo trabajar deciden buscar otro emeplo que se ajuste mejor a sus preferencias.
+[^4]: Aquí puedes consultar más información sobre la Brecha salarial en <a href="https://elintransigente.com/2020/09/corea-del-sur-la-brecha-salarial-entre-hombres-y-mujeres-empeorara-con-la-pandemia/"target="_blank">Corea</a>
+
+
+Para acabar este chunk incluiré mi `session info`:
+
+```{r}
+sessioninfo::session_info() %>% details::details(summary = 'current session info') 
+```
