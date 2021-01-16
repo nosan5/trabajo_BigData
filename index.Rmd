@@ -81,7 +81,7 @@ Es decir, hay más personas que están dispuestas a ofrecer su trabajo que puest
 ```{r eval = TRUE, echo = FALSE, out.width="85%"}
 knitr::include_graphics(here::here("Imagenes", "esquema.png"))
 ```
-<a href="./imagenes/esquema.png" target="_blank">[Ampliar Imagen]</a>
+<a href="./Imagenes/esquema.png" target="_blank">[Ampliar Imagen]</a>
 
 He obtenido la imagen de: <a href="http://www.econosublime.com/2017/12/conceptos-mercado-trabajo.html"target="_blank">aquí</a>, página donde se explican los conceptos básicos del mercado de trabajo. 
 
