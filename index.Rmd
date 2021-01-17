@@ -19,7 +19,6 @@ output:
     df_print: kable
 editor_options: 
   chunk_output_type: console
-  
 ---
 
 ```{r packages-setup, include = FALSE}
@@ -826,7 +825,7 @@ Mediante los gráficos siguientes, podemos ver como ha sido la evolución de la 
 
 <br>
 
-#### **¿CÓMO HA EVOLUCIONADO LA TASA DE PARO FEMENINA?**
+### **¿CÓMO HA EVOLUCIONADO LA TASA DE PARO FEMENINA?**
 
 
 ```{r echo=FALSE, eval=TRUE}
@@ -935,7 +934,7 @@ ggplot() + geom_sf(data = peninsula_y_canarias, color = "black") +
 
 <br>
 
-#### **¿Y LA TASA DE PARO MASCULINA?**
+### **¿Y LA TASA DE PARO MASCULINA?**
 
 
 ```{r echo=FALSE, eval=TRUE}
@@ -1661,6 +1660,9 @@ En cuanto a las mujeres directivas, decir que Colombia es el país de la OCDE qu
 
 En suma, es importante tener en cuenta las características del mercado de trabajo español para poder mejorar el desempleo, que es un elemento básico para una mejora en el PIB de la economía. De igual modo, no hay que olvidar otros aspectos como la brecha salarial y el techo de cristal, que limitan la igualdad entre ambos sexos.
 
+
+<center>
+![](Imagenes/images.jpg){width="55%"}</center>
 
 ## Referencias
 
