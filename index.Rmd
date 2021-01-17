@@ -165,6 +165,7 @@ library(viridis)
 library(hrbrthemes) 
 library(wordcloud2)
 library(gt)
+library(meme)
 ```
 
 ### <FONT COLOR="violetred">**Tidy**</FONT>
@@ -1661,8 +1662,13 @@ En cuanto a las mujeres directivas, decir que Colombia es el país de la OCDE qu
 En suma, es importante tener en cuenta las características del mercado de trabajo español para poder mejorar el desempleo, que es un elemento básico para una mejora en el PIB de la economía. De igual modo, no hay que olvidar otros aspectos como la brecha salarial y el techo de cristal, que limitan la igualdad entre ambos sexos.
 
 
+```{r echo=FALSE, eval=TRUE}
+url <- here::here("Imagenes", "Pizarra.jpg")
+meme <- meme::meme(url, font = "Open Sans", upper = "Y esto es todo, \n GRACIAS!", size=3.5)
+```
+
 <center>
-![](Imagenes/images.jpg){width="55%"}</center>
+![](Imagenes/meme.png){width="55%"}</center>
 
 ## Referencias
 
